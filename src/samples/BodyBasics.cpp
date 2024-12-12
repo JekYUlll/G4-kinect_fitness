@@ -35,7 +35,9 @@ Application::Application() :
     m_pBrushHandLasso(NULL),
     m_pColorFrameReader(NULL),
     m_pColorRenderer(NULL),
-    m_pColorRGBX(NULL)
+    m_pColorRGBX(NULL),
+    m_pColorBitmap(nullptr),
+    m_colorBitmapSize({0, 0})
 {
     LARGE_INTEGER qpf = {0};
     if (QueryPerformanceFrequency(&qpf))
@@ -86,6 +88,7 @@ Application::~Application()
     }
 
     SafeRelease(m_pColorFrameReader);
+    SafeRelease(m_pColorBitmap);
 }
 
 void Application::HandlePaint()
@@ -105,12 +108,14 @@ void Application::HandlePaint()
     LARGE_INTEGER currentTime;
     QueryPerformanceCounter(&currentTime);
 
-    // 计算距离上次绘制的时间间隔
+    // 计算离上次绘制的时间间隔
     double deltaTime = (currentTime.QuadPart - m_nLastCounter) / m_fFreq;
     
-    // 如果距离上次绘制时间太短，就跳过这一帧
-    if (deltaTime < 0.016)  // 约60fps
+    // 使用固定的帧率控制
+    const double targetFrameTime = 1.0 / 60.0;  // 目标60fps
+    if (deltaTime < targetFrameTime)
     {
+        Sleep(1);  // 短暂休眠以减少 CPU 使用率
         return;
     }
 
@@ -181,7 +186,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         10, 50,     // 位置在按钮下方
         780, 500,   // 大小略小于主窗口
         hWndApp,
-        (HMENU)IDC_VIDEOVIEW,  // 确保在resource.h中定义了这个ID
+        (HMENU)IDC_VIDEOVIEW,
         hInstance,
         NULL
     );
@@ -876,57 +881,61 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
         return;
     }
 
-    // 创建位图
-    ID2D1Bitmap* pBitmap = nullptr;
-    D2D1_SIZE_U size = D2D1::SizeU(nWidth, nHeight);
-    D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)
-    );
-
-    HRESULT hr = m_pRenderTarget->CreateBitmap(
-        size,
-        pBuffer,
-        nWidth * sizeof(RGBQUAD),
-        props,
-        &pBitmap
-    );
-
-    if (SUCCEEDED(hr) && pBitmap)
+    // 使用类成员变量管理位图
+    if (!m_pColorBitmap || 
+        m_colorBitmapSize.width != nWidth || 
+        m_colorBitmapSize.height != nHeight)
     {
-        // 获取渲染目标的大小
-        D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
+        SafeRelease(m_pColorBitmap);
+        m_colorBitmapSize = D2D1::SizeU(nWidth, nHeight);
 
-        // 计算目标矩形，保持纵横比
-        float aspectRatio = static_cast<float>(nWidth) / nHeight;
-        float targetWidth = rtSize.width;
-        float targetHeight = rtSize.height;
-
-        if (targetWidth / targetHeight > aspectRatio)
-        {
-            targetWidth = targetHeight * aspectRatio;
-        }
-        else
-        {
-            targetHeight = targetWidth / aspectRatio;
-        }
-
-        float x = (rtSize.width - targetWidth) / 2;
-        float y = (rtSize.height - targetHeight) / 2;
-
-        D2D1_RECT_F destRect = D2D1::RectF(
-            x, y,
-            x + targetWidth,
-            y + targetHeight
+        D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)
         );
 
-        // 绘制位图
-        m_pRenderTarget->DrawBitmap(
-            pBitmap,
-            destRect,
-            1.0f,
-            D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+        HRESULT hr = m_pRenderTarget->CreateBitmap(
+            m_colorBitmapSize, 
+            props, 
+            &m_pColorBitmap
         );
 
-        SafeRelease(pBitmap);
+        if (FAILED(hr) || !m_pColorBitmap)
+        {
+            return;
+        }
     }
+
+    // 更新位图数据
+    D2D1_RECT_U updateRect = D2D1::RectU(0, 0, nWidth, nHeight);
+    m_pColorBitmap->CopyFromMemory(&updateRect, pBuffer, nWidth * sizeof(RGBQUAD));
+
+    // 获取渲染目标的大小
+    D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
+
+    // 计算目标矩形，保持纵横比
+    float aspectRatio = static_cast<float>(nWidth) / nHeight;
+    float targetWidth = rtSize.width;
+    float targetHeight = rtSize.height;
+
+    if (targetWidth / targetHeight > aspectRatio)
+    {
+        targetWidth = targetHeight * aspectRatio;
+    }
+    else
+    {
+        targetHeight = targetWidth / aspectRatio;
+    }
+
+    float x = (rtSize.width - targetWidth) / 2;
+    float y = (rtSize.height - targetHeight) / 2;
+
+    D2D1_RECT_F destRect = D2D1::RectF(x, y, x + targetWidth, y + targetHeight);
+
+    // 绘制位图
+    m_pRenderTarget->DrawBitmap(
+        m_pColorBitmap,
+        destRect,
+        1.0f,
+        D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+    );
 }

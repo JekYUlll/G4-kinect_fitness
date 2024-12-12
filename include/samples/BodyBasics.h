@@ -104,6 +104,10 @@ private:
     IColorFrameReader*      m_pColorFrameReader;
     class ImageRenderer*    m_pColorRenderer;
     RGBQUAD*               m_pColorRGBX;
+    
+    // 颜色位图相关
+    ID2D1Bitmap*           m_pColorBitmap;
+    D2D1_SIZE_U           m_colorBitmapSize;
 
     /// <summary>
     /// Main processing function

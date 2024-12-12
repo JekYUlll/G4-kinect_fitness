@@ -19,8 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\kinect_dev\ColorBasics-D2D\ColorBasics.cpp" />
-    <ClCompile Include="..\..\kinect_dev\ColorBasics-D2D\ImageRenderer.cpp" />
     <ClCompile Include="External\imgui\imgui.cpp" />
     <ClCompile Include="External\imgui\imgui_demo.cpp" />
     <ClCompile Include="External\imgui\imgui_draw.cpp" />
@@ -46,8 +44,6 @@
     <ResourceCompile Include="BodyBasics.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\kinect_dev\ColorBasics-D2D\ColorBasics.h" />
-    <ClInclude Include="..\..\kinect_dev\ColorBasics-D2D\ImageRenderer.h" />
     <ClInclude Include="External\imgui\imconfig.h" />
     <ClInclude Include="External\imgui\imgui.h" />
     <ClInclude Include="External\imgui\imgui_impl_dx11.h" />
