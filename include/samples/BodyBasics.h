@@ -9,6 +9,8 @@
 
 #include <Windows.h>
 #include <thread>
+#include <vector>  // 添加 vector 头文件
+#include <string>  // 添加 string 头文件
 
 #include "stdafx.h"
 #include <strsafe.h>
@@ -16,6 +18,8 @@
 #include "config.h"
 #include "ui/KFui.h"
 #include "samples/ImageRenderer.h"
+#include <dwrite.h>  // 添加 DirectWrite 支持
+#include "calc/serialize.hpp"  // 只保留这个必要的头文件
 
 
 
@@ -72,6 +76,10 @@ public:
 
     void ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight);
 
+    // Getter 和 Setter for m_isRecording
+    void SetRecording(bool isRecording) { m_isRecording = isRecording; }
+    bool IsRecording() const { return m_isRecording; }
+
 private:
     HWND                    m_hWnd;
     INT64                   m_nStartTime;
@@ -108,6 +116,10 @@ private:
     // 颜色位图相关
     ID2D1Bitmap*           m_pColorBitmap;
     D2D1_SIZE_U           m_colorBitmapSize;
+
+    // 录制状态相关
+    bool m_isRecording;        // 是否正在录制
+    std::string m_recordFilePath;  // 添加文件路径成员
 
     /// <summary>
     /// Main processing function

@@ -37,7 +37,8 @@ Application::Application() :
     m_pColorRenderer(NULL),
     m_pColorRGBX(NULL),
     m_pColorBitmap(nullptr),
-    m_colorBitmapSize({0, 0})
+    m_colorBitmapSize({0, 0}),
+    m_isRecording(false)
 {
     LARGE_INTEGER qpf = {0};
     if (QueryPerformanceFrequency(&qpf))
@@ -519,12 +520,6 @@ HRESULT Application::InitializeDefaultSensor()
 /// </summary>
 void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 {
-    if (!m_hWnd || !m_pCoordinateMapper)
-    {
-        return;
-    }
-
-    // 不在这里调用 EnsureDirect2DResources???因为 HandlePaint 已经调用过了
     if (!m_pRenderTarget)
     {
         return;
@@ -535,6 +530,43 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rct);
     int width = rct.right;
     int height = rct.bottom;
+
+    // 如果正在录制，显示录制状态文字
+    if (m_isRecording)
+    {
+        HDC hdc = GetDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW));
+        SetTextColor(hdc, RGB(255, 0, 0));  // 红色文字
+        SetBkMode(hdc, TRANSPARENT);         // 透明背景
+        
+        // 使用较大字体
+        HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+        HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+        
+        // 绘制文字
+        TextOut(hdc, 10, 10, L"Recording...", 11);
+        
+        // 清理资源
+        SelectObject(hdc, hOldFont);
+        DeleteObject(hFont);
+        ReleaseDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), hdc);
+
+        // 如果是刚开始录制，创建新文件名
+        if (m_recordFilePath.empty())
+        {
+            SYSTEMTIME st;
+            GetLocalTime(&st);
+            char fileName[256];
+            sprintf_s(fileName, "skeleton_record_%04d%02d%02d_%02d%02d%02d.dat",
+                st.wYear, st.wMonth, st.wDay,
+                st.wHour, st.wMinute, st.wSecond);
+            m_recordFilePath = fileName;
+            
+            // 添加日志输出
+            LOG_I("Started recording to file: {}", m_recordFilePath);
+        }
+    }
 
     // 遍历每个捕捉到的身体
     for (int i = 0; i < nBodyCount; ++i)
@@ -566,6 +598,27 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                     DrawBody(joints, jointPoints);
                     DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
                     DrawHand(rightHandState, jointPoints[JointType_HandRight]);
+
+                    // 如果正在录制，保存骨骼数据
+                    if (m_isRecording && !m_recordFilePath.empty())
+                    {
+                        // 创建一帧数据
+                        kf::FrameData frameData;
+                        frameData.timestamp = nTime;  // 使用当前帧的时间戳
+
+                        // 将关节数据转换为可序列化的格式
+                        for (int j = 0; j < _countof(joints); ++j)
+                        {
+                            kf::JointData data;
+                            data.type = joints[j].JointType;
+                            data.position = joints[j].Position;
+                            data.trackingState = joints[j].TrackingState;
+                            frameData.joints.push_back(data);
+                        }
+
+                        // 序列化并保存数据
+                        kf::serializeFrame(m_recordFilePath, frameData, true);  // 使用 append 模式
+                    }
                 }
             }
         }

@@ -56,11 +56,11 @@
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
     <ClInclude Include="include\action\accuracy.hpp" />
+    <ClInclude Include="include\calc\serialize.hpp" />
     <ClInclude Include="include\config.h" />
     <ClInclude Include="include\samples\BodyBasics.h" />
     <ClInclude Include="include\log\KFLog.h" />
     <ClInclude Include="include\KFcommon.h" />
-    <ClInclude Include="include\calc\serialize.h" />
     <ClInclude Include="include\resource.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\ui\KFui.h" />

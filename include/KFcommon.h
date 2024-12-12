@@ -1,4 +1,3 @@
-
 #ifndef KFCOMMON_H
 #define KFCOMMON_H
 
@@ -19,6 +18,8 @@ namespace kf {
 
 	// 全局变量，用于标识开始/暂停状态
 	extern bool isTracking;
+
+	extern bool isRecording;
 
 
 }

@@ -6,10 +6,11 @@
 #include <iostream>
 #include <vector>
 
-struct JointData {
+// 注释掉这个结构体，因为已经在 serialize.hpp 中定义了
+/*struct JointData {
     CameraSpacePoint position;
     JointType jointType;
-};
+};*/
 
 // 用于存储准确率的结构
 struct AccuracyData {
@@ -18,15 +19,12 @@ struct AccuracyData {
     std::mutex mtx;       // 互斥锁
 };
 
-//a.基于每个关节的误差（欧几里得距离）
-//我们可以通过计算每个关节的位置误差（通常是欧几里得距离），然后根据所有关节的误差来计算整体的准确率。简单地说，首先计算每个关节的位置误差，然后对所有关节的误差取平均值或加权平均。
-//
-//计算步骤：
-//
-//对每一帧的每个关节，计算预测关节位置与标准关节位置之间的误差。
-//将每个关节的误差汇总（可以是加权平均，考虑到某些关节可能更加重要）。
-//通过对整个动作序列的多个帧误差进行累计，计算出整体的准确率。
-double CalculateAccuracy(const std::vector<JointData>& predictedJoints, const std::vector<JointData>& targetJoints) {
+namespace kf {  // 添加命名空间
+
+// 将函数声明为 inline 以避免多重定义
+inline double CalculateAccuracy(const std::vector<JointData>& predictedJoints, 
+                              const std::vector<JointData>& targetJoints) 
+{
     double totalError = 0.0;
     int jointCount = predictedJoints.size();
 
@@ -45,16 +43,7 @@ double CalculateAccuracy(const std::vector<JointData>& predictedJoints, const st
     return totalError / jointCount;
 }
 
-//void CalculateAndUpdateAccuracy(const Joint* joints, int jointCount) {
-//    // 计算准确率
-//    double accuracy = CalculateAccuracy(joints, jointCount);
-//
-//    // 将准确率存入共享数据结构
-//    AccuracyData accuracyData;
-//    std::lock_guard<std::mutex> lock(accuracyData.mtx);
-//    accuracyData.accuracy = accuracy;
-//    accuracyData.isNewData = true;  // 表示新数据已经计算完成
-//}
+}  // namespace kf
 
 class SkeletonRecorder {
 public:
