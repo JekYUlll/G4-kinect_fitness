@@ -15,6 +15,7 @@
 #include "resource.h"
 #include "config.h"
 #include "ui/KFui.h"
+#include "samples/ImageRenderer.h"
 
 
 
@@ -22,6 +23,8 @@ class Application
 {
     static const int        cDepthWidth = 512;
     static const int        cDepthHeight = 424;
+    static const int        cColorWidth = 1920;
+    static const int        cColorHeight = 1080;
 
 public:
     /// <summary>
@@ -67,6 +70,8 @@ public:
         DiscardDirect2DResources();
     }
 
+    void ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight);
+
 private:
     HWND                    m_hWnd;
     INT64                   m_nStartTime;
@@ -94,6 +99,11 @@ private:
     ID2D1SolidColorBrush* m_pBrushHandClosed;
     ID2D1SolidColorBrush* m_pBrushHandOpen;
     ID2D1SolidColorBrush* m_pBrushHandLasso;
+
+    // Color Frame 相关
+    IColorFrameReader*      m_pColorFrameReader;
+    class ImageRenderer*    m_pColorRenderer;
+    RGBQUAD*               m_pColorRGBX;
 
     /// <summary>
     /// Main processing function

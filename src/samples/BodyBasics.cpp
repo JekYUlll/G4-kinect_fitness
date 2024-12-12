@@ -32,13 +32,19 @@ Application::Application() :
     m_pBrushBoneInferred(NULL),
     m_pBrushHandClosed(NULL),
     m_pBrushHandOpen(NULL),
-    m_pBrushHandLasso(NULL)
+    m_pBrushHandLasso(NULL),
+    m_pColorFrameReader(NULL),
+    m_pColorRenderer(NULL),
+    m_pColorRGBX(NULL)
 {
     LARGE_INTEGER qpf = {0};
     if (QueryPerformanceFrequency(&qpf))
     {
         m_fFreq = double(qpf.QuadPart);
     }
+
+    // 创建颜色缓冲区
+    m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
 }
   
 
@@ -65,6 +71,21 @@ Application::~Application()
     }
 
     SafeRelease(m_pKinectSensor);
+
+    // 清理颜色相关资源
+    if (m_pColorRenderer)
+    {
+        delete m_pColorRenderer;
+        m_pColorRenderer = NULL;
+    }
+
+    if (m_pColorRGBX)
+    {
+        delete[] m_pColorRGBX;
+        m_pColorRGBX = NULL;
+    }
+
+    SafeRelease(m_pColorFrameReader);
 }
 
 void Application::HandlePaint()
@@ -93,9 +114,11 @@ void Application::HandlePaint()
         return;
     }
 
+    // 开始绘制
     m_pRenderTarget->BeginDraw();
     m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 
+    // 更新和绘制
     Update();
 
     hr = m_pRenderTarget->EndDraw();
@@ -224,14 +247,76 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
 /// </summary>
 void Application::Update()
 {
-    if (!m_pBodyFrameReader)
+    if (!m_pColorFrameReader || !m_pBodyFrameReader)
     {
         return;
     }
 
-    IBodyFrame* pBodyFrame = NULL;
-    HRESULT hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
+    // 首先处理颜色帧
+    IColorFrame* pColorFrame = NULL;
+    HRESULT hr = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
+    if (SUCCEEDED(hr))
+    {
+        INT64 nTime = 0;
+        IFrameDescription* pFrameDescription = NULL;
+        int nWidth = 0;
+        int nHeight = 0;
+        ColorImageFormat imageFormat = ColorImageFormat_None;
+        UINT nBufferSize = 0;
+        RGBQUAD *pBuffer = NULL;
 
+        hr = pColorFrame->get_RelativeTime(&nTime);
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pColorFrame->get_FrameDescription(&pFrameDescription);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pFrameDescription->get_Width(&nWidth);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pFrameDescription->get_Height(&nHeight);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            hr = pColorFrame->get_RawColorImageFormat(&imageFormat);
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            if (imageFormat == ColorImageFormat_Bgra)
+            {
+                hr = pColorFrame->AccessRawUnderlyingBuffer(&nBufferSize, reinterpret_cast<BYTE**>(&pBuffer));
+            }
+            else
+            {
+                hr = pColorFrame->CopyConvertedFrameDataToArray(
+                    cColorWidth * cColorHeight * sizeof(RGBQUAD),
+                    reinterpret_cast<BYTE*>(m_pColorRGBX),
+                    ColorImageFormat_Bgra
+                );
+                pBuffer = m_pColorRGBX;
+            }
+        }
+
+        if (SUCCEEDED(hr))
+        {
+            // 先绘制颜色帧
+            ProcessColor(nTime, pBuffer, nWidth, nHeight);
+        }
+
+        SafeRelease(pFrameDescription);
+    }
+    SafeRelease(pColorFrame);
+
+    // 然后处理骨骼帧
+    IBodyFrame* pBodyFrame = NULL;
+    hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
     if (SUCCEEDED(hr))
     {
         INT64 nTime = 0;
@@ -253,7 +338,6 @@ void Application::Update()
             SafeRelease(ppBodies[i]);
         }
     }
-
     SafeRelease(pBodyFrame);
 }
 
@@ -371,46 +455,50 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
 /// <returns>indicates success or failure</returns>
 HRESULT Application::InitializeDefaultSensor()
 {
-    HRESULT hr;
-
-    hr = GetDefaultKinectSensor(&m_pKinectSensor);
-    if (FAILED(hr)) {
-        LOG_E("Failed to get default Kinect sensor: {}", hr);
+    HRESULT hr = GetDefaultKinectSensor(&m_pKinectSensor);
+    if (FAILED(hr))
+    {
         return hr;
     }
 
-    if (m_pKinectSensor) {
-        // Initialize the Kinect and get coordinate mapper and the body reader
-        IBodyFrameSource* pBodyFrameSource = NULL;
-
+    if (m_pKinectSensor)
+    {
+        // 初始化 Kinect
         hr = m_pKinectSensor->Open();
-        if (FAILED(hr)) {
-            LOG_E("Failed to open Kinect sensor: {}", hr);
-            return hr;
+
+        if (SUCCEEDED(hr))
+        {
+            // 获取坐标映射器
+            hr = m_pKinectSensor->get_CoordinateMapper(&m_pCoordinateMapper);
         }
 
-        hr = m_pKinectSensor->get_CoordinateMapper(&m_pCoordinateMapper);
-        if (FAILED(hr)) {
-            LOG_E("Failed to get coordinate mapper: {}", hr);
-            return hr;
+        // 初始化骨骼帧源
+        if (SUCCEEDED(hr))
+        {
+            IBodyFrameSource* pBodyFrameSource = NULL;
+            hr = m_pKinectSensor->get_BodyFrameSource(&pBodyFrameSource);
+            if (SUCCEEDED(hr))
+            {
+                hr = pBodyFrameSource->OpenReader(&m_pBodyFrameReader);
+            }
+            SafeRelease(pBodyFrameSource);
         }
 
-        hr = m_pKinectSensor->get_BodyFrameSource(&pBodyFrameSource);
-        if (FAILED(hr)) {
-            LOG_E("Failed to get body frame source: {}", hr);
-            return hr;
+        // 初始化颜色帧源
+        if (SUCCEEDED(hr))
+        {
+            IColorFrameSource* pColorFrameSource = NULL;
+            hr = m_pKinectSensor->get_ColorFrameSource(&pColorFrameSource);
+            if (SUCCEEDED(hr))
+            {
+                hr = pColorFrameSource->OpenReader(&m_pColorFrameReader);
+            }
+            SafeRelease(pColorFrameSource);
         }
-
-        hr = pBodyFrameSource->OpenReader(&m_pBodyFrameReader);
-        if (FAILED(hr)) {
-            LOG_E("Failed to open body frame reader: {}", hr);
-            return hr;
-        }
-
-        SafeRelease(pBodyFrameSource);
     }
 
-    if (!m_pKinectSensor || FAILED(hr)) {
+    if (!m_pKinectSensor || FAILED(hr))
+    {
         LOG_E("No ready Kinect found!");
         return E_FAIL;
     }
@@ -443,7 +531,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     int width = rct.right;
     int height = rct.bottom;
 
-    // ??历每个捕捉到的身体
+    // 遍历每个捕捉到的身体
     for (int i = 0; i < nBodyCount; ++i)
     {
         IBody* pBody = ppBodies[i];
@@ -778,5 +866,67 @@ void Application::DrawHand(HandState handState, const D2D1_POINT_2F& handPositio
         case HandState_Lasso:
             m_pRenderTarget->FillEllipse(ellipse, m_pBrushHandLasso);
             break;
+    }
+}
+
+void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight)
+{
+    if (!m_pRenderTarget || !pBuffer)
+    {
+        return;
+    }
+
+    // 创建位图
+    ID2D1Bitmap* pBitmap = nullptr;
+    D2D1_SIZE_U size = D2D1::SizeU(nWidth, nHeight);
+    D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)
+    );
+
+    HRESULT hr = m_pRenderTarget->CreateBitmap(
+        size,
+        pBuffer,
+        nWidth * sizeof(RGBQUAD),
+        props,
+        &pBitmap
+    );
+
+    if (SUCCEEDED(hr) && pBitmap)
+    {
+        // 获取渲染目标的大小
+        D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
+
+        // 计算目标矩形，保持纵横比
+        float aspectRatio = static_cast<float>(nWidth) / nHeight;
+        float targetWidth = rtSize.width;
+        float targetHeight = rtSize.height;
+
+        if (targetWidth / targetHeight > aspectRatio)
+        {
+            targetWidth = targetHeight * aspectRatio;
+        }
+        else
+        {
+            targetHeight = targetWidth / aspectRatio;
+        }
+
+        float x = (rtSize.width - targetWidth) / 2;
+        float y = (rtSize.height - targetHeight) / 2;
+
+        D2D1_RECT_F destRect = D2D1::RectF(
+            x, y,
+            x + targetWidth,
+            y + targetHeight
+        );
+
+        // 绘制位图
+        m_pRenderTarget->DrawBitmap(
+            pBitmap,
+            destRect,
+            1.0f,
+            D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+        );
+
+        SafeRelease(pBitmap);
     }
 }

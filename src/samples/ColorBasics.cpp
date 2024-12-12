@@ -17,6 +17,7 @@
 /// <param name="lpCmdLine">command line arguments</param>
 /// <param name="nCmdShow">whether to display minimized, maximized, or normally</param>
 /// <returns>status</returns>
+/*
 int APIENTRY wWinMain(    
 	_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -30,6 +31,7 @@ int APIENTRY wWinMain(
     CColorBasics application;
     application.Run(hInstance, nShowCmd);
 }
+*/
 
 /// <summary>
 /// Constructor
