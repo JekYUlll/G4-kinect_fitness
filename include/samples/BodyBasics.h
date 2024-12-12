@@ -8,11 +8,17 @@
 #define BODYBASIC_H
 
 #include <Windows.h>
+#include <thread>
+
 #include "stdafx.h"
 #include <strsafe.h>
 #include "resource.h"
+#include "config.h"
+#include "ui/KFui.h"
 
-class CBodyBasics
+
+
+class Application
 {
     static const int        cDepthWidth = 512;
     static const int        cDepthHeight = 424;
@@ -21,12 +27,14 @@ public:
     /// <summary>
     /// Constructor
     /// </summary>
-    CBodyBasics();
+    Application();
 
     /// <summary>
     /// Destructor
     /// </summary>
-    ~CBodyBasics();
+    ~Application();
+
+    void HandlePaint();
 
     /// <summary>
     /// Handles window messages, passes most to the class instance to handle
@@ -54,6 +62,10 @@ public:
     /// <param name="hInstance"></param>
     /// <param name="nCmdShow"></param>
     int                     Run(HINSTANCE hInstance, int nCmdShow);
+
+    void HandleResize() {
+        DiscardDirect2DResources();
+    }
 
 private:
     HWND                    m_hWnd;

@@ -5,18 +5,15 @@
 
 #include "log/KFLog.h"
 #include "KFcommon.h"
+#include "ui/KFui.h"
 
 #include "samples/BodyBasics.h"
+
 
 int main(int argc, char** argv)
 {
     kf::Logger::Init();
-    LOG_T("G4 Kinect Fittness Platform: {0}, {1}, {3}", __FUNCTION__, 1, 0.14f, true);
-    LOG_D("G4 Kinect Fittness Platform: {0}, {1}, {3}", __FUNCTION__, 1, 0.14f, true);
-    LOG_I("G4 Kinect Fittness Platform: {0}, {1}, {3}", __FUNCTION__, 1, 0.14f, true);
-    LOG_W("G4 Kinect Fittness Platform: {0}, {1}, {3}", __FUNCTION__, 1, 0.14f, true);
-    LOG_E("G4 Kinect Fittness Platform: {0}, {1}, {3}", __FUNCTION__, 1, 0.14f, true);
-
+    LOG_I("Initializing G4 Kinect Fitness Platform...");
 
     return wWinMain(GetModuleHandle(NULL), NULL, GetCommandLineW(), SW_SHOWNORMAL);
 }
@@ -39,9 +36,60 @@ int APIENTRY wWinMain(
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    CBodyBasics application;
-    application.Run(hInstance, nShowCmd);
+    auto application = new Application;
+    application->Run(hInstance, nShowCmd);
 
     return 0;
 }
 
+//// 注册窗口类和创建窗口
+//int APIENTRY wWinMain(
+//    _In_ HINSTANCE hInstance,
+//    _In_opt_ HINSTANCE hPrevInstance,
+//    _In_ LPWSTR lpCmdLine,
+//    _In_ int nShowCmd
+//)
+//{
+//    UNREFERENCED_PARAMETER(hPrevInstance);
+//    UNREFERENCED_PARAMETER(lpCmdLine);
+//
+//    // 创建窗口类
+//    const wchar_t CLASS_NAME[] = L"WindowClass";
+//    WNDCLASS wc = {};
+//    wc.lpfnWndProc = WindowProc; // 设置窗口过程函数
+//    wc.hInstance = hInstance;
+//    wc.lpszClassName = CLASS_NAME;
+//
+//    if (!RegisterClass(&wc)) {
+//        return 0;
+//    }
+//
+//    // 创建窗口
+//    HWND hwnd = CreateWindowEx(
+//        0,                              // 扩展风格
+//        CLASS_NAME,                     // 类名
+//        L"健身辅助程序",                 // 窗口标题
+//        WS_OVERLAPPEDWINDOW,            // 窗口样式
+//        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, // 窗口位置与大小
+//        NULL,                           // 父窗口
+//        NULL,                           // 菜单
+//        hInstance,                     // 应用实例句柄
+//        NULL                            // 额外的创建数据
+//    );
+//
+//    if (hwnd == NULL) {
+//        return 0;
+//    }
+//
+//    ShowWindow(hwnd, nShowCmd);
+//    UpdateWindow(hwnd);
+//
+//    // 消息循环
+//    MSG msg = {};
+//    while (GetMessage(&msg, NULL, 0, 0)) {
+//        TranslateMessage(&msg);
+//        DispatchMessage(&msg);
+//    }
+//
+//    return 0;
+//}
