@@ -3,3 +3,5 @@ BodyBasics-D2D/
 .vs/
 .vscode/
 *.dat
+External/Eigen/
+External/spdlog/
