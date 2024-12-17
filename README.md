@@ -1,7 +1,17 @@
 # G4-kinect_fitness
 ### SEU HCI2024 G4 
 
-内容为 *Kinect Fitness*，命名空间为`kf`。 
+中文
+---
+
+内容为 *Kinect Fitness*，命名空间为`kf`。
+
+默认编译环境为 Visual Studio 2022，使用 C++17 标准。
+
+#### External
+
+- 窗口：  Win32 API
+- 日志库：[spdlog](https://github.com/gabime/spdlog)
 
 #### 用法
 
@@ -12,8 +22,16 @@ window_width = 800
 window_height = 600
 frame_rate = 30
 ```
-`file_path`为标准动作数据文件路径，默认以.dat文件存储。  
-窗口中点击record按钮后开始录制，默认以`skeleton_record_`+当前时间戳为文件命名。
+`file_path`为标准动作数据文件，为相对可执行文件的路径。  
+窗口中点击[record]按钮后开始录制，默认以`skeleton_record_`+当前时间戳为文件命名，默认以.dat文件二进制存储。
+
+---
+
+English
+---
+
+
+
 
 
 
