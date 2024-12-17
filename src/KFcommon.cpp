@@ -2,10 +2,6 @@
 
 namespace kf {
 
-	/*bool isTracking = false;
-
-	bool isRecording = true;*/
-
 	std::string std_file_path = "";
 
 	int window_width = 800;

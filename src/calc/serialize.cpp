@@ -71,7 +71,7 @@ namespace kf {
         }
     }
 
-    // 构造函数，直接加载文件
+    // 构造函数，加载标准动作文件
     ActionTemplate::ActionTemplate(const std::string& filePath) {
         frames = std::make_unique<std::vector<kf::FrameData>>();
         if (!loadFromFile(filePath)) {

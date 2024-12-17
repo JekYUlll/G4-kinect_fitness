@@ -11,7 +11,6 @@
 #include "samples/BodyBasics.h"
 #include "ConfigReader.hpp"
 
-//static std::string config_path = "F:\\Program\\G4 - Kinect\\config.txt";
 static std::string config_path = "config.txt";
 
 int main(int argc, char** argv)
