@@ -8,6 +8,8 @@
 #include <limits>
 #include "serialize.h"
 
+#include <Eigen/Dense> // 用于回归分析
+
 namespace kf {
 
     // 计算两个关节数据的距离

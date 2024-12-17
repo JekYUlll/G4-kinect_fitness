@@ -14,6 +14,7 @@
 
 - 窗口：  Win32 API
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
+- 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
 
 #### 用法
 

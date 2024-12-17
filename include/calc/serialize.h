@@ -2,6 +2,7 @@
 #define SERIALIZE_H
 
 #include "KFcommon.h"
+#include "config.h"
 #include <vector>
 #include <fstream>
 #include <deque>
