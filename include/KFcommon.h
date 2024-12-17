@@ -6,6 +6,7 @@
 #include <fstream>
 #include <Kinect.h>
 #include <vector>
+#include <string>
 
 #include "config.h"
 #include "ui/KFui.h"
@@ -17,9 +18,17 @@
 namespace kf {
 
 	// 全局变量，用于标识开始/暂停状态
-	extern bool isTracking;
+	/*extern bool isTracking;
 
-	extern bool isRecording;
+	extern bool isRecording;*/
+
+	extern std::string std_file_path;
+
+	extern int window_width;
+	extern int window_height;
+
+	// 保存间隔 -- 防止采样率太高的卡顿
+	extern INT64 recordInterval;
 
 
 }

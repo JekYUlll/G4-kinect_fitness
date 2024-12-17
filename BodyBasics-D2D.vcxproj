@@ -28,6 +28,7 @@
     <ClCompile Include="External\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="External\imgui\imgui_tables.cpp" />
     <ClCompile Include="External\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\calc\compare.cpp" />
     <ClCompile Include="src\KFcommon.cpp" />
     <ClCompile Include="src\samples\BodyBasics.cpp" />
     <ClCompile Include="src\log\KFLog.cpp" />
@@ -55,17 +56,25 @@
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
-    <ClInclude Include="include\action\accuracy.hpp" />
-    <ClInclude Include="include\calc\serialize.hpp" />
+    <ClInclude Include="include\calc\compare.h" />
+    <ClInclude Include="include\calc\serialize.h" />
     <ClInclude Include="include\config.h" />
+    <ClInclude Include="include\ConfigReader.hpp" />
     <ClInclude Include="include\samples\BodyBasics.h" />
     <ClInclude Include="include\log\KFLog.h" />
     <ClInclude Include="include\KFcommon.h" />
     <ClInclude Include="include\resource.h" />
+    <ClInclude Include="include\samples\ImageRenderer.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\ui\KFui.h" />
     <ClInclude Include="src\samples\ColorBasics.h" />
     <ClInclude Include="src\samples\ImageRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="config.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6E5E35A2-7A3B-4671-AD85-B39DC5D710C9}</ProjectGuid>
@@ -140,7 +149,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -156,7 +165,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -172,7 +181,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -192,7 +201,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

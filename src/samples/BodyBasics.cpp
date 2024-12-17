@@ -171,7 +171,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         L"Kinect Fitness",             
         WS_OVERLAPPEDWINDOW,           
         CW_USEDEFAULT, CW_USEDEFAULT,  
-        800, 600,                      
+        kf::window_width, kf::window_height,
         NULL,                          
         NULL,                          
         hInstance,                     
@@ -520,11 +520,9 @@ HRESULT Application::InitializeDefaultSensor()
 /// </summary>
 void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 {
-    if (!m_pRenderTarget)
-    {
+    if (!m_pRenderTarget) {
         return;
     }
-
     // 获取窗口大小
     RECT rct;
     GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rct);
@@ -532,29 +530,24 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     int height = rct.bottom;
 
     // 如果正在录制，显示录制状态文字
-    if (m_isRecording)
-    {
+    if (m_isRecording) {
         HDC hdc = GetDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW));
         SetTextColor(hdc, RGB(255, 0, 0));  // 红色文字
         SetBkMode(hdc, TRANSPARENT);         // 透明背景
-        
+
         // 使用较大字体
         HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
             DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
             CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
         HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-        
         // 绘制文字
         TextOut(hdc, 10, 10, L"Recording...", 11);
-        
         // 清理资源
         SelectObject(hdc, hOldFont);
         DeleteObject(hFont);
         ReleaseDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), hdc);
-
         // 如果是刚开始录制，创建新文件名
-        if (m_recordFilePath.empty())
-        {
+        if (m_recordFilePath.empty()) {
             SYSTEMTIME st;
             GetLocalTime(&st);
             char fileName[256];
@@ -562,25 +555,20 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                 st.wYear, st.wMonth, st.wDay,
                 st.wHour, st.wMinute, st.wSecond);
             m_recordFilePath = fileName;
-            
-            // 添加日志输出
             LOG_I("Started recording to file: {}", m_recordFilePath);
         }
     }
 
     // 遍历每个捕捉到的身体
-    for (int i = 0; i < nBodyCount; ++i)
-    {
+    for (int i = 0; i < nBodyCount; ++i) {
         IBody* pBody = ppBodies[i];
-        if (pBody)
-        {
+        if (pBody) {
             BOOLEAN bTracked = false;
             HRESULT hr = pBody->get_IsTracked(&bTracked);
 
-            if (SUCCEEDED(hr) && bTracked)
-            {
-                Joint joints[JointType_Count]; 
-                D2D1_POINT_2F jointPoints[JointType_Count]{};
+            if (SUCCEEDED(hr) && bTracked) {
+                Joint joints[JointType_Count];
+                D2D1_POINT_2F jointPoints[JointType_Count] = {};
                 HandState leftHandState = HandState_Unknown;
                 HandState rightHandState = HandState_Unknown;
 
@@ -588,37 +576,57 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                 pBody->get_HandRightState(&rightHandState);
 
                 hr = pBody->GetJoints(_countof(joints), joints);
-                if (SUCCEEDED(hr))
-                {
-                    for (int j = 0; j < _countof(joints); ++j)
-                    {
+                if (SUCCEEDED(hr)) {
+                    for (int j = 0; j < _countof(joints); ++j) {
                         jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
                     }
-
                     DrawBody(joints, jointPoints);
                     DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
                     DrawHand(rightHandState, jointPoints[JointType_HandRight]);
+                    // 记录骨骼数据
+                    static INT64 lastRecordedTime = 0;
+                    static std::mutex recordMutex;
 
-                    // 如果正在录制，保存骨骼数据
-                    if (m_isRecording && !m_recordFilePath.empty())
-                    {
-                        // 创建一帧数据
-                        kf::FrameData frameData;
-                        frameData.timestamp = nTime;  // 使用当前帧的时间戳
+                    if (m_isRecording && !m_recordFilePath.empty() && (nTime - lastRecordedTime >= kf::recordInterval)) {
+                        lastRecordedTime = nTime;  // 更新上次记录时间
+                        // 异步保存当前帧
+                        std::async(std::launch::async, [&, nTime]() {
+                            kf::FrameData frameData;
+                            frameData.timestamp = nTime;
 
-                        // 将关节数据转换为可序列化的格式
-                        for (int j = 0; j < _countof(joints); ++j)
-                        {
-                            kf::JointData data;
-                            data.type = joints[j].JointType;
-                            data.position = joints[j].Position;
-                            data.trackingState = joints[j].TrackingState;
-                            frameData.joints.push_back(data);
-                        }
-
-                        // 序列化并保存数据
-                        kf::serializeFrame(m_recordFilePath, frameData, true);  // 使用 append 模式
+                            for (int j = 0; j < _countof(joints); ++j) {
+                                kf::JointData data{};
+                                data.type = joints[j].JointType;
+                                data.position = joints[j].Position;
+                                data.trackingState = joints[j].TrackingState;
+                                frameData.joints.push_back(data);
+                            }
+                            std::lock_guard<std::mutex> lock(recordMutex);
+                            kf::serializeFrame(m_recordFilePath, frameData, true);
+                            });
                     }
+
+                    // 实时动作缓冲区更新
+                    static kf::ActionBuffer actionBuffer(30);
+                    kf::FrameData frameData;
+                    frameData.timestamp = nTime;
+
+                    for (int j = 0; j < _countof(joints); ++j) {
+                        kf::JointData data;
+                        data.type = joints[j].JointType;
+                        data.position = joints[j].Position;
+                        data.trackingState = joints[j].TrackingState;
+                        frameData.joints.push_back(data);
+                    }
+
+                    actionBuffer.addFrame(frameData);
+
+                    // 异步比较动作
+                    static std::future<void> comparisonFuture;
+                    comparisonFuture = std::async(std::launch::async, [&]() {
+                        float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
+                        LOG_T("当前动作与标准动作的相似度: {}", similarity);
+                        });
                 }
             }
         }
@@ -631,7 +639,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 
     // 更新FPS显示
     double fps = 0.0;
-    LARGE_INTEGER qpcNow = {0};
+    LARGE_INTEGER qpcNow = { 0 };
     if (m_fFreq)
     {
         if (QueryPerformanceCounter(&qpcNow))
@@ -653,6 +661,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
         m_nFramesSinceUpdate = 0;
     }
 }
+
 
 /// <summary>
 /// Set the status bar message

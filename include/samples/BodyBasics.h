@@ -11,17 +11,16 @@
 #include <thread>
 #include <vector>  // 添加 vector 头文件
 #include <string>  // 添加 string 头文件
+#include <dwrite.h>  // 添加 DirectWrite 支持
+#include <strsafe.h>
 
 #include "stdafx.h"
-#include <strsafe.h>
 #include "resource.h"
 #include "config.h"
 #include "ui/KFui.h"
 #include "samples/ImageRenderer.h"
-#include <dwrite.h>  // 添加 DirectWrite 支持
-#include "calc/serialize.hpp"  // 只保留这个必要的头文件
-
-
+#include "calc/serialize.h"
+#include "calc/compare.h"
 
 class Application
 {

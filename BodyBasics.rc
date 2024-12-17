@@ -44,7 +44,7 @@ CLASS "BodyBasicsAppDlgWndClass"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_VIDEOVIEW,"Static",SS_BLACKFRAME,0,0,622,369
-    LTEXT           "",IDC_STATUS,0,370,622,11,SS_SUNKEN
+    LTEXT           "",IDC_STATUS,0,250,622,11,SS_SUNKEN
 END
 
 
@@ -59,6 +59,7 @@ BEGIN
     IDD_APP, DIALOG
     BEGIN
         RIGHTMARGIN, 546
+        VERTGUIDE, 546
         BOTTOMMARGIN, 381
     END
 END
