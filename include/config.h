@@ -7,7 +7,13 @@ namespace kf {
 #define WINDOW_TITLE L"G4-KinectFitness"
 #define DATA_DIR "Resources/data"
 
-#define USE_LINEAR_REGRESSION
+#define CONFIG_PATH "config.txt"
+
+#define ACTION_BUFFER_SIZE 30
+
+//#define USE_LINEAR_REGRESSION
+
+#define USE_DTW
 
 }
 

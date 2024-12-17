@@ -1,4 +1,4 @@
-# G4-kinect_fitness
+# G4-kinect_fitness - KFC
 ### SEU HCI2024 G4 
 
 ---
@@ -6,7 +6,8 @@
 中文
 ---
 
- *Kinect Fitness*，命名空间为`kf`。`
+*Kinect Fitness Coach* 是一个基于 Kinect v2 的健身教练系统。简称 KFC (认真)。
+*Kinect Fitness*，命名空间为`kf`。`
 
 默认编译环境为 Visual Studio 2022，使用 C++17 标准。
 

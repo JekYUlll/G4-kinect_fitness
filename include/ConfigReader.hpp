@@ -54,6 +54,20 @@ namespace kf {
         }
         return config;
     }
+
+    inline void InitConfig(const std::string& configFilePath) {
+        auto config = kf::ReadConfig(configFilePath);
+        kf::std_file_path = config.std_file_path;
+        kf::window_width = config.window_width;
+        kf::window_height = config.window_height;
+        LOG_D("标准动作文件路径: {}", kf::std_file_path);
+        LOG_D("分辨率: {0} * {1}", kf::window_width, kf::window_height);
+        // 加载标准动作
+        kf::g_actionTemplate = std::make_unique<kf::ActionTemplate>(kf::std_file_path);
+        /*if (kf::g_actionTemplate && !kf::g_actionTemplate->getFrames().empty()) {
+            LOG_I("标准动作加载成功! 共有 {} 帧数据。", kf::g_actionTemplate->getFrameCount());
+        }*/
+    }
 }
 
 #endif

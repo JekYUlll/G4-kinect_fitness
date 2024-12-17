@@ -108,6 +108,7 @@ int CColorBasics::Run(HINSTANCE hInstance, int nCmdShow)
     ZeroMemory(&wc, sizeof(wc));
     wc.style         = CS_HREDRAW | CS_VREDRAW;
     wc.cbWndExtra    = DLGWINDOWEXTRA;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
     wc.hIcon         = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_APP));
     wc.lpfnWndProc   = DefDlgProcW;
@@ -324,13 +325,11 @@ HRESULT CColorBasics::InitializeDefaultSensor()
     HRESULT hr;
 
     hr = GetDefaultKinectSensor(&m_pKinectSensor);
-    if (FAILED(hr))
-    {
+    if (FAILED(hr)) {
         return hr;
     }
 
-    if (m_pKinectSensor)
-    {
+    if (m_pKinectSensor) {
         // Initialize the Kinect and get the color reader
         IColorFrameSource* pColorFrameSource = NULL;
 
@@ -349,8 +348,7 @@ HRESULT CColorBasics::InitializeDefaultSensor()
         SafeRelease(pColorFrameSource);
     }
 
-    if (!m_pKinectSensor || FAILED(hr))
-    {
+    if (!m_pKinectSensor || FAILED(hr)) {
         SetStatusMessage(L"No ready Kinect found!", 10000, true);
         return E_FAIL;
     }

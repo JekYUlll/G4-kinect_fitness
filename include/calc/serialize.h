@@ -81,6 +81,9 @@ public:
     // 加载标准动作数据
     bool loadFromFile(const std::string& filename);
 
+    // 把标准动作打印到日志
+    void PrintData() const;
+
     // 获取标准动作的帧数据
     [[nodiscard]] inline const std::vector<kf::FrameData>& getFrames() const {
         return *frames; // 解引用智能指针

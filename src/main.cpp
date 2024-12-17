@@ -11,26 +11,24 @@
 #include "samples/BodyBasics.h"
 #include "ConfigReader.hpp"
 
-static std::string config_path = "config.txt";
-
 int main(int argc, char** argv)
 {
+    {
+        const int border_length = 42;
+        std::string border = "--+" + std::string(border_length, '-') + "+--";
+        std::string empty_line = "| " + std::string(border_length, ' ') + " |";
+        std::cout << border << std::endl;
+        std::cout << "|   ____ _  _         _  _______ ____   |" << std::endl;
+        std::cout << "|  / ___| || |       | |/ /  ___/ ___|  |" << std::endl;
+        std::cout << "| | |  _| || |_ _____| ' /| |_ | |      |" << std::endl;
+        std::cout << "| | |_| |__   _|_____| . \\|  _|| |___   |" << std::endl;
+        std::cout << "|  \\____|  |_|       |_|\_\\_|   \\____|  |" << std::endl;
+        std::cout << border << std::endl;
+    }
+
     kf::Logger::Init();
     LOG_I("Initializing G4 Kinect Fitness Platform...");
-
-    {
-        auto config = kf::ReadConfig(config_path);
-        kf::std_file_path = config.std_file_path;
-        kf::window_width = config.window_width;
-        kf::window_height = config.window_height;
-        LOG_T("标准动作文件路径: {}", kf::std_file_path);
-        LOG_T("分辨率: {0} * {1}", kf::window_width, kf::window_height);
-        // 加载标准动作
-        kf::g_actionTemplate = std::make_unique<kf::ActionTemplate>(kf::std_file_path);
-        if (kf::g_actionTemplate && !kf::g_actionTemplate->getFrames().empty()) {
-            LOG_I("标准动作加载成功! 共有 {} 帧数据。", kf::g_actionTemplate->getFrameCount());
-        }
-    }
+    kf::InitConfig(CONFIG_PATH);
 
     Application application;
     return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);

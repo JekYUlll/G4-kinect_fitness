@@ -94,10 +94,30 @@ namespace kf {
             }
 
             in.close();
+            // 打印加载的动作帧日志
+            LOG_I("Successfully loaded action template from file: {}", filename);
+            LOG_I("Total frames loaded: {}", frames->size());
+
+            //PrintData();
+
             return true;
         }
         catch (...) {
             return false;
+        }
+    }
+
+    // 把标准动作打印到日志
+    void ActionTemplate::PrintData() const {
+        for (size_t i = 0; i < frames->size(); ++i) {
+            const auto& frame = (*frames)[i];
+            LOG_D("Frame {} - Timestamp: {}", i, frame.timestamp);
+            LOG_D("Number of joints: {}", frame.joints.size());
+
+            for (const auto& joint : frame.joints) {
+                LOG_T("  Joint Type: {}, Position: ({:.2f}, {:.2f}, {:.2f}), TrackingState: {}",
+                    joint.type, joint.position.X, joint.position.Y, joint.position.Z, joint.trackingState);
+            }
         }
     }
 

@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------
 
 #include "samples/BodyBasics.h"
+//#pragma comment(lib, "Dwrite.lib")
 
 static const float c_JointThickness = 3.0f;
 static const float c_TrackedBoneThickness = 6.0f;
@@ -38,13 +39,31 @@ Application::Application() :
     m_pColorRGBX(NULL),
     m_pColorBitmap(nullptr),
     m_colorBitmapSize({0, 0}),
-    m_isRecording(false)
+    m_isRecording(false),
+    m_isCalcing(false),
+    m_fCurrentSimilarity(0.0f)
 {
     LARGE_INTEGER qpf = {0};
     if (QueryPerformanceFrequency(&qpf))
     {
         m_fFreq = double(qpf.QuadPart);
     }
+
+    /*HRESULT hr = DWriteCreateFactory(
+        DWRITE_FACTORY_TYPE_SHARED,
+        __uuidof(IDWriteFactory),
+        reinterpret_cast<IUnknown**>(&m_pDWriteFactory)
+    );
+    if (FAILED(hr)) {
+        LOG_E("Failed to create DirectWrite Factory");
+    }*/
+    /*if (SUCCEEDED(hr) && m_pRenderTarget && !m_pBrush) {
+        hr = m_pRenderTarget->CreateSolidColorBrush(
+            D2D1::ColorF(D2D1::ColorF::Green), &m_pBrush);
+        if (FAILED(hr)) {
+            LOG_E("Failed to create solid color brush");
+        }
+    }*/
 
     // 创建颜色缓冲区
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
@@ -94,14 +113,11 @@ Application::~Application()
 
 void Application::HandlePaint()
 {
-    if (!m_pBodyFrameReader || !m_hWnd)
-    {
+    if (!m_pBodyFrameReader || !m_hWnd) {
         return;
     }
-
     HRESULT hr = EnsureDirect2DResources();
-    if (FAILED(hr) || !m_pRenderTarget)
-    {
+    if (FAILED(hr) || !m_pRenderTarget) {
         return;
     }
 
@@ -111,30 +127,44 @@ void Application::HandlePaint()
 
     // 计算离上次绘制的时间间隔
     double deltaTime = (currentTime.QuadPart - m_nLastCounter) / m_fFreq;
-    
     // 使用固定的帧率控制
     const double targetFrameTime = 1.0 / 60.0;  // 目标60fps
-    if (deltaTime < targetFrameTime)
-    {
-        Sleep(1);  // 短暂休眠以减少 CPU 使用率
+    if (deltaTime < targetFrameTime) {
+        //Sleep(1);  // 短暂休眠以减少 CPU 使用率
         return;
     }
-
     // 开始绘制
     m_pRenderTarget->BeginDraw();
-    m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
-
-    // 更新和绘制
+    // m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black)); // 画面闪烁的原因在这
     Update();
+
+    {
+        // 绘制相似度文本
+        WCHAR similarityText[64];
+        swprintf_s(similarityText, L"Similarity: %.2f%%", m_fCurrentSimilarity * 100.0f);
+
+        IDWriteTextFormat* pTextFormat = nullptr;
+        hr = m_pDWriteFactory->CreateTextFormat(
+            L"Arial", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL, 22.0f, L"en-us", &pTextFormat);
+
+        if (SUCCEEDED(hr)) {
+            m_pRenderTarget->DrawText(
+                similarityText, wcslen(similarityText),
+                pTextFormat,
+                D2D1::RectF(10.0f, 50.0f, 300.0f, 100.0f),
+                m_pBrush);
+        }
+        SafeRelease(pTextFormat);
+    }
 
     hr = m_pRenderTarget->EndDraw();
 
-    if (hr == D2DERR_RECREATE_TARGET)
-    {
+    if (hr == D2DERR_RECREATE_TARGET) {
         hr = S_OK;
         DiscardDirect2DResources();
+        EnsureDirect2DResources();  // 立即重建资源
     }
-
     // 更新上次绘制时间
     m_nLastCounter = currentTime.QuadPart;
 }
@@ -152,6 +182,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
     // Dialog custom window class
     ZeroMemory(&wc, sizeof(wc));
     wc.style         = CS_HREDRAW | CS_VREDRAW;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // new
     wc.cbWndExtra    = DLGWINDOWEXTRA;
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
     wc.hIcon         = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_APP));
@@ -462,8 +493,7 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
 HRESULT Application::InitializeDefaultSensor()
 {
     HRESULT hr = GetDefaultKinectSensor(&m_pKinectSensor);
-    if (FAILED(hr))
-    {
+    if (FAILED(hr)) {
         return hr;
     }
 
@@ -520,7 +550,7 @@ HRESULT Application::InitializeDefaultSensor()
 /// </summary>
 void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 {
-    if (!m_pRenderTarget) {
+    if (!m_pRenderTarget || !m_isCalcing) {
         return;
     }
     // 获取窗口大小
@@ -529,37 +559,9 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     int width = rct.right;
     int height = rct.bottom;
 
-    // 如果正在录制，显示录制状态文字
-    if (m_isRecording) {
-        HDC hdc = GetDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW));
-        SetTextColor(hdc, RGB(255, 0, 0));  // 红色文字
-        SetBkMode(hdc, TRANSPARENT);         // 透明背景
+    static kf::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE); // 动作缓冲区
+    static std::future<void> comparisonFuture;                // 异步计算相似度的任务
 
-        // 使用较大字体
-        HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-            DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
-        HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-        // 绘制文字
-        TextOut(hdc, 10, 10, L"Recording...", 11);
-        // 清理资源
-        SelectObject(hdc, hOldFont);
-        DeleteObject(hFont);
-        ReleaseDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), hdc);
-        // 如果是刚开始录制，创建新文件名
-        if (m_recordFilePath.empty()) {
-            SYSTEMTIME st;
-            GetLocalTime(&st);
-            char fileName[256];
-            sprintf_s(fileName, "skeleton_record_%04d%02d%02d_%02d%02d%02d.dat",
-                st.wYear, st.wMonth, st.wDay,
-                st.wHour, st.wMinute, st.wSecond);
-            m_recordFilePath = fileName;
-            LOG_I("Started recording to file: {}", m_recordFilePath);
-        }
-    }
-
-    // 遍历每个捕捉到的身体
     for (int i = 0; i < nBodyCount; ++i) {
         IBody* pBody = ppBodies[i];
         if (pBody) {
@@ -569,45 +571,10 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
             if (SUCCEEDED(hr) && bTracked) {
                 Joint joints[JointType_Count];
                 D2D1_POINT_2F jointPoints[JointType_Count] = {};
-                HandState leftHandState = HandState_Unknown;
-                HandState rightHandState = HandState_Unknown;
-
-                pBody->get_HandLeftState(&leftHandState);
-                pBody->get_HandRightState(&rightHandState);
-
                 hr = pBody->GetJoints(_countof(joints), joints);
+
                 if (SUCCEEDED(hr)) {
-                    for (int j = 0; j < _countof(joints); ++j) {
-                        jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
-                    }
-                    DrawBody(joints, jointPoints);
-                    DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
-                    DrawHand(rightHandState, jointPoints[JointType_HandRight]);
-                    // 记录骨骼数据
-                    static INT64 lastRecordedTime = 0;
-                    static std::mutex recordMutex;
-
-                    if (m_isRecording && !m_recordFilePath.empty() && (nTime - lastRecordedTime >= kf::recordInterval)) {
-                        lastRecordedTime = nTime;  // 更新上次记录时间
-                        // 异步保存当前帧
-                        std::async(std::launch::async, [&, nTime]() {
-                            kf::FrameData frameData;
-                            frameData.timestamp = nTime;
-
-                            for (int j = 0; j < _countof(joints); ++j) {
-                                kf::JointData data{};
-                                data.type = joints[j].JointType;
-                                data.position = joints[j].Position;
-                                data.trackingState = joints[j].TrackingState;
-                                frameData.joints.push_back(data);
-                            }
-                            std::lock_guard<std::mutex> lock(recordMutex);
-                            kf::serializeFrame(m_recordFilePath, frameData, true);
-                            });
-                    }
-
-                    // 实时动作缓冲区更新
-                    static kf::ActionBuffer actionBuffer(30);
+                    // 转换为 FrameData 并添加到缓冲区
                     kf::FrameData frameData;
                     frameData.timestamp = nTime;
 
@@ -617,35 +584,63 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                         data.position = joints[j].Position;
                         data.trackingState = joints[j].TrackingState;
                         frameData.joints.push_back(data);
+                        jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
                     }
 
-                    actionBuffer.addFrame(frameData);
+                    actionBuffer.addFrame(frameData); // 添加到动作缓冲区
 
-                    // 异步比较动作
-                    static std::future<void> comparisonFuture;
-                    comparisonFuture = std::async(std::launch::async, [&]() {
-                        float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
-                        LOG_T("当前动作与标准动作的相似度: {}", similarity);
-                        });
+                    // 绘制骨骼和手部状态
+                    DrawBody(joints, jointPoints);
+
+                    // 异步计算与标准动作的相似度
+                    if (!comparisonFuture.valid() || comparisonFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+                        comparisonFuture = std::async(std::launch::async, [&]() {
+                            if (kf::g_actionTemplate) { // 确保标准动作已加载
+                                float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
+
+                                // 记录相似度
+                                LOG_T("当前动作与标准动作的相似度: {:.2f}", similarity);
+
+                                // 更新相似度数值（线程安全）
+                                m_fCurrentSimilarity = similarity;
+
+                                // 通知主线程重绘
+                                InvalidateRect(m_hWnd, NULL, FALSE);
+
+                                //// 绘制相似度到屏幕
+                                //HDC hdc = GetDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW));
+                                //SetTextColor(hdc, RGB(0, 255, 0));
+                                //SetBkMode(hdc, TRANSPARENT);
+
+                                //HFONT hFont = CreateFont(22, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                                //    DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
+                                //    CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+                                //HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+
+                                //WCHAR similarityText[64];
+                                //StringCchPrintf(similarityText, _countof(similarityText), L"Similarity: %.2f%%", similarity * 100.0f);
+                                //TextOut(hdc, 10, 50, similarityText, wcslen(similarityText));
+
+                                //SelectObject(hdc, hOldFont);
+                                //DeleteObject(hFont);
+                                //ReleaseDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), hdc);
+                            }
+                            });
+                    }
                 }
             }
         }
     }
 
+    // 计算 FPS 并显示状态
     if (!m_nStartTime)
-    {
         m_nStartTime = nTime;
-    }
 
-    // 更新FPS显示
     double fps = 0.0;
     LARGE_INTEGER qpcNow = { 0 };
-    if (m_fFreq)
-    {
-        if (QueryPerformanceCounter(&qpcNow))
-        {
-            if (m_nLastCounter)
-            {
+    if (m_fFreq) {
+        if (QueryPerformanceCounter(&qpcNow)) {
+            if (m_nLastCounter) {
                 m_nFramesSinceUpdate++;
                 fps = m_fFreq * m_nFramesSinceUpdate / double(qpcNow.QuadPart - m_nLastCounter);
             }
@@ -654,13 +649,12 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 
     WCHAR szStatusMessage[64];
     StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" FPS = %0.2f    Time = %I64d", fps, (nTime - m_nStartTime));
-
-    if (SetStatusMessage(szStatusMessage, 1000, false))
-    {
+    if (SetStatusMessage(szStatusMessage, 1000, false)) {
         m_nLastCounter = qpcNow.QuadPart;
         m_nFramesSinceUpdate = 0;
     }
 }
+
 
 
 /// <summary>
@@ -698,8 +692,16 @@ HRESULT Application::EnsureDirect2DResources()
         return E_FAIL;
     }
 
-    if (!m_pRenderTarget)
-    {
+    hr = DWriteCreateFactory(
+        DWRITE_FACTORY_TYPE_SHARED,
+        __uuidof(IDWriteFactory),
+        reinterpret_cast<IUnknown**>(&m_pDWriteFactory)
+    );
+    if (FAILED(hr)) {
+        LOG_E("Failed to create DirectWrite Factory");
+    }
+
+    if (!m_pRenderTarget) {
         HWND hWndVideo = GetDlgItem(m_hWnd, IDC_VIDEOVIEW);
         if (!hWndVideo) {
             LOG_E("Failed to get video window handle");
@@ -737,6 +739,12 @@ HRESULT Application::EnsureDirect2DResources()
 
         if (FAILED(hr)) {
             LOG_E("Failed to create render target: 0x{:08X}", hr);
+            return hr;
+        }
+
+        hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Green), &m_pBrush);
+        if (FAILED(hr)) {
+            LOG_E("Failed to create brush: 0x{:08X}", hr);
             return hr;
         }
 

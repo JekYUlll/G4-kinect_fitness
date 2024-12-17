@@ -9,14 +9,6 @@
 #include <d2d1.h>
 
 namespace kf {
-    // Direct3D device and context
-    extern ID3D11Device* g_pd3dDevice;
-    extern ID3D11DeviceContext* g_pd3dDeviceContext;
-    extern IDXGISwapChain* g_pSwapChain;
-
-    // Direct2D resources
-    extern ID2D1Factory* m_pD2DFactory;
-    extern ID2D1HwndRenderTarget* m_pRenderTarget;
 
     // UI ¿Ø¼þ¾ä±ú
     extern HWND hStartButton;

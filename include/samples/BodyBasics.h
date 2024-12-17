@@ -69,15 +69,23 @@ public:
     /// <param name="nCmdShow"></param>
     int                     Run(HINSTANCE hInstance, int nCmdShow);
 
-    void HandleResize() {
+    inline void HandleResize() {
         DiscardDirect2DResources();
     }
 
     void ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight);
 
     // Getter 和 Setter for m_isRecording
-    void SetRecording(bool isRecording) { m_isRecording = isRecording; }
-    bool IsRecording() const { return m_isRecording; }
+    [[nodiscard]] inline void SetRecording(bool isRecording) { m_isRecording = isRecording; }
+    [[nodiscard]] inline bool IsRecording() const { return m_isRecording; }
+
+    // Getter 和 Setter for m_isCalcing
+    [[nodiscard]] inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
+    [[nodiscard]] inline bool IsCalcing() const { return m_isCalcing; }
+
+    [[nodiscard]] inline ID2D1HwndRenderTarget* GetRenderTarget() const { return m_pRenderTarget; }
+
+
 
 private:
     HWND                    m_hWnd;
@@ -96,6 +104,10 @@ private:
 
     // Direct2D
     ID2D1Factory* m_pD2DFactory;
+
+    // 用于绘制文本
+    IDWriteFactory* m_pDWriteFactory = nullptr;
+    ID2D1SolidColorBrush* m_pBrush = nullptr;
 
     // Body/hand drawing
     ID2D1HwndRenderTarget* m_pRenderTarget;
@@ -116,9 +128,13 @@ private:
     ID2D1Bitmap*           m_pColorBitmap;
     D2D1_SIZE_U           m_colorBitmapSize;
 
-    // 录制状态相关
-    bool m_isRecording;        // 是否正在录制
-    std::string m_recordFilePath;  // 添加文件路径成员
+    bool m_isRecording;             // 是否正在录制
+    bool m_isCalcing;               // 是否正在计算
+    std::string m_recordFilePath;   // 添加文件路径成员
+
+    float m_fCurrentSimilarity;
+
+    
 
     /// <summary>
     /// Main processing function
