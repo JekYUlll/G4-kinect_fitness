@@ -42,7 +42,7 @@ namespace kf {
     }
 
     // 序列化一帧的骨骼数据到文件
-    bool serializeFrame(const std::string& filename, const FrameData& frame, bool append) {
+    bool SaveFrame(const std::string& filename, const FrameData& frame, bool append) {
         try {
             std::ofstream out(filename, append ? (std::ios::binary | std::ios::app) : std::ios::binary);
             if (!out) {
@@ -57,7 +57,7 @@ namespace kf {
     }
 
     // 从文件读取一帧骨骼数据
-    bool deserializeFrame(const std::string& filename, FrameData& frame) {
+    bool LoadFrame(const std::string& filename, FrameData& frame) {
         try {
             std::ifstream in(filename, std::ios::binary);
             if (!in) {

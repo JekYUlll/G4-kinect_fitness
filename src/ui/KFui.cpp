@@ -23,6 +23,10 @@ namespace kf {
         LOG_D("Finish printing standard move.");
     }
 
+    void OnAidButtonClick() {
+
+    }
+
     // 窗口过程函数
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         Application* pApp = nullptr;
@@ -79,6 +83,21 @@ namespace kf {
                 30,                                 // 高度
                 hwnd,                               // 父窗口
                 (HMENU)3,                          // 菜单/控件ID
+                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // 实例句柄
+                NULL                                // 额外参数
+            );
+
+            // 创建播放按钮
+            hPrintButton = CreateWindow(
+                L"BUTTON",                          // 窗口类名
+                L"Aid",                          // 按钮文本
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 样式
+                340,                                // x 位置
+                10,                                 // y 位置
+                100,                                // 宽度
+                30,                                 // 高度
+                hwnd,                               // 父窗口
+                (HMENU)4,                          // 菜单/控件ID
                 (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // 实例句柄
                 NULL                                // 额外参数
             );
@@ -142,6 +161,10 @@ namespace kf {
             case 2:  // Record 按钮
                 OnRecordButtonClick();
                 if (!pApp->IsRecording()) {
+                    if (!pApp->IsCalcing()) { // 必须在计算状态下才能录制
+                        LOG_E("must start Calcing before Recording");
+                        break;
+                    }
                     pApp->SetRecording(true);
                     SetWindowText(hRecordButton, L"Stop");
                     LOG_I("Start Recording...");
@@ -155,7 +178,21 @@ namespace kf {
             case 3: // Print 按钮
                 OnPrintButtonClick();
                 break;
+
+            case 4: // Aid 按钮
+                OnAidButtonClick();
+                if (pApp->SwitchPlayingTemplate()) {
+                    pApp->SetPlaybackStartTime(0); // 重置播放起点
+                    LOG_I("Started playing action template.");
+                }
+                else {
+                    LOG_I("Stopped playing action template.");
+                }
+                //InvalidateRect(m_hWnd, NULL, FALSE); // 触发界面重绘
+                break;
             }
+
+
 
             return 0;
         }

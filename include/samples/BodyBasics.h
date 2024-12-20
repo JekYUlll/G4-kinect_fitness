@@ -76,15 +76,21 @@ public:
     void ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight);
 
     // Getter 和 Setter for m_isRecording
-    [[nodiscard]] inline void SetRecording(bool isRecording) { m_isRecording = isRecording; }
+    inline void SetRecording(bool isRecording) { m_isRecording = isRecording; }
     [[nodiscard]] inline bool IsRecording() const { return m_isRecording; }
 
     // Getter 和 Setter for m_isCalcing
-    [[nodiscard]] inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
+    inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
     [[nodiscard]] inline bool IsCalcing() const { return m_isCalcing; }
 
     [[nodiscard]] inline ID2D1HwndRenderTarget* GetRenderTarget() const { return m_pRenderTarget; }
 
+    //inline void SetPlayingTemplate(bool isPlayingTemplate) { m_isPlayingTemplate = isPlayingTemplate; }
+    inline bool SwitchPlayingTemplate() { m_isPlayingTemplate = !m_isPlayingTemplate; return m_isPlayingTemplate; }
+
+    inline void SetCurrentFrameIndex(const size_t& currentFrameIndex) { m_currentFrameIndex = currentFrameIndex; }
+
+    inline void SetPlaybackStartTime(const INT64& playbackStartTime) { m_playbackStartTime = playbackStartTime; }
 
 
 private:
@@ -130,11 +136,16 @@ private:
 
     bool m_isRecording;             // 是否正在录制
     bool m_isCalcing;               // 是否正在计算
+    bool m_isPlayingTemplate;       // 是否显示标准动作
+    INT64 m_playbackStartTime;            // 播放开始时间
+    size_t m_currentFrameIndex;           // 当前帧索引
+
+
+    
+
     std::string m_recordFilePath;   // 添加文件路径成员
 
     float m_fCurrentSimilarity;
-
-    
 
     /// <summary>
     /// Main processing function
@@ -154,6 +165,11 @@ private:
     /// <param name="ppBodies">body data in frame</param>
     /// </summary>
     void                    ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies);
+
+    // 实时捕捉骨架绘制（绿色）
+    void DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies);
+    // 播放标准动作骨架（蓝色）
+    void PlayActionTemplate(INT64 nTime);
 
     /// <summary>
     /// Set the status bar message

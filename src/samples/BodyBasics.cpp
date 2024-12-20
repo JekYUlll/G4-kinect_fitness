@@ -41,6 +41,9 @@ Application::Application() :
     m_colorBitmapSize({0, 0}),
     m_isRecording(false),
     m_isCalcing(false),
+    m_isPlayingTemplate(false),
+    m_playbackStartTime(0),
+    m_currentFrameIndex(0),
     m_fCurrentSimilarity(0.0f)
 {
     LARGE_INTEGER qpf = {0};
@@ -138,7 +141,25 @@ void Application::HandlePaint()
     // m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black)); // 画面闪烁的原因在这
     Update();
 
-    {
+    if (m_isRecording) {
+        // 使用 Direct2D 绘制 "Recording..."
+        WCHAR recordingText[] = L"Recording...";
+        IDWriteTextFormat* pTextFormat = nullptr;
+        HRESULT hr = m_pDWriteFactory->CreateTextFormat(
+            L"Arial", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL, 30.0f, L"en-us", &pTextFormat);
+
+        if (SUCCEEDED(hr)) {
+            m_pRenderTarget->DrawText(
+                recordingText, wcslen(recordingText),
+                pTextFormat,
+                D2D1::RectF(10.0f, 10.0f, 300.0f, 50.0f), // 确定文本显示的区域
+                m_pBrush); // 使用现有画刷绘制文本
+        }
+        SafeRelease(pTextFormat);
+    }
+
+    if (m_isCalcing) {
         // 绘制相似度文本
         WCHAR similarityText[64];
         swprintf_s(similarityText, L"Similarity: %.2f%%", m_fCurrentSimilarity * 100.0f);
@@ -360,18 +381,15 @@ void Application::Update()
         hr = pBodyFrame->get_RelativeTime(&nTime);
         IBody* ppBodies[BODY_COUNT] = {0};
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
         }
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             ProcessBody(nTime, BODY_COUNT, ppBodies);
         }
 
-        for (int i = 0; i < _countof(ppBodies); ++i)
-        {
+        for (int i = 0; i < _countof(ppBodies); ++i) {
             SafeRelease(ppBodies[i]);
         }
     }
@@ -553,6 +571,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     if (!m_pRenderTarget || !m_isCalcing) {
         return;
     }
+
     // 获取窗口大小
     RECT rct;
     GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rct);
@@ -560,8 +579,25 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     int height = rct.bottom;
 
     static kf::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE); // 动作缓冲区
-    static std::future<void> comparisonFuture;                // 异步计算相似度的任务
+    static std::future<void> comparisonFuture;                // 异步计算相似度任务
+    static INT64 lastRecordedTime = 0;                        // 上次记录时间戳
+    static std::mutex recordMutex;                            // 记录互斥锁
 
+    if (m_isRecording) {
+        // 创建录制文件名
+        if (m_recordFilePath.empty()) {
+            SYSTEMTIME st;
+            GetLocalTime(&st);
+            char fileName[256];
+            sprintf_s(fileName, "skeleton_record_%04d%02d%02d_%02d%02d%02d.dat",
+                st.wYear, st.wMonth, st.wDay,
+                st.wHour, st.wMinute, st.wSecond);
+            m_recordFilePath = fileName;
+            LOG_I("Started recording to file: {}", m_recordFilePath);
+        }
+    }
+
+    // 遍历每个捕捉到的身体
     for (int i = 0; i < nBodyCount; ++i) {
         IBody* pBody = ppBodies[i];
         if (pBody) {
@@ -571,8 +607,13 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
             if (SUCCEEDED(hr) && bTracked) {
                 Joint joints[JointType_Count];
                 D2D1_POINT_2F jointPoints[JointType_Count] = {};
-                hr = pBody->GetJoints(_countof(joints), joints);
+                HandState leftHandState = HandState_Unknown;
+                HandState rightHandState = HandState_Unknown;
 
+                pBody->get_HandLeftState(&leftHandState);
+                pBody->get_HandRightState(&rightHandState);
+
+                hr = pBody->GetJoints(_countof(joints), joints);
                 if (SUCCEEDED(hr)) {
                     // 转换为 FrameData 并添加到缓冲区
                     kf::FrameData frameData;
@@ -591,12 +632,26 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 
                     // 绘制骨骼和手部状态
                     DrawBody(joints, jointPoints);
+                    DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
+                    DrawHand(rightHandState, jointPoints[JointType_HandRight]);
+
+                    // 序列化当前帧
+                    if (m_isRecording && !m_recordFilePath.empty() && (nTime - lastRecordedTime >= kf::recordInterval)) {
+                        lastRecordedTime = nTime;  // 更新上次记录时间
+
+                        // 异步保存当前帧
+                        std::async(std::launch::async, [this, frameData]() {
+                            std::lock_guard<std::mutex> lock(recordMutex);
+                            kf::SaveFrame(m_recordFilePath, frameData, true);
+                            });
+                    }
 
                     // 异步计算与标准动作的相似度
                     if (!comparisonFuture.valid() || comparisonFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-                        comparisonFuture = std::async(std::launch::async, [&]() {
+                        comparisonFuture = std::async(std::launch::async, [this]() {
                             if (kf::g_actionTemplate) { // 确保标准动作已加载
-                                float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
+                                float error = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
+                                float similarity = 1.0f / (1.0f + error);
 
                                 // 记录相似度
                                 LOG_T("当前动作与标准动作的相似度: {:.2f}", similarity);
@@ -606,24 +661,6 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 
                                 // 通知主线程重绘
                                 InvalidateRect(m_hWnd, NULL, FALSE);
-
-                                //// 绘制相似度到屏幕
-                                //HDC hdc = GetDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW));
-                                //SetTextColor(hdc, RGB(0, 255, 0));
-                                //SetBkMode(hdc, TRANSPARENT);
-
-                                //HFONT hFont = CreateFont(22, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-                                //    DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
-                                //    CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
-                                //HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-
-                                //WCHAR similarityText[64];
-                                //StringCchPrintf(similarityText, _countof(similarityText), L"Similarity: %.2f%%", similarity * 100.0f);
-                                //TextOut(hdc, 10, 50, similarityText, wcslen(similarityText));
-
-                                //SelectObject(hdc, hOldFont);
-                                //DeleteObject(hFont);
-                                //ReleaseDC(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), hdc);
                             }
                             });
                     }
@@ -633,8 +670,9 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     }
 
     // 计算 FPS 并显示状态
-    if (!m_nStartTime)
+    if (!m_nStartTime) {
         m_nStartTime = nTime;
+    }
 
     double fps = 0.0;
     LARGE_INTEGER qpcNow = { 0 };
@@ -655,7 +693,42 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     }
 }
 
+void Application::DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies)
+{
+}
 
+void Application::PlayActionTemplate(INT64 nTime)
+{
+    //if (!m_isPlayingTemplate || !kf::g_actionTemplate || !kf::g_actionTemplate->frames) {
+    //    return; // 未打开播放或模板未加载
+    //}
+
+    //// 确保播放起点时间初始化
+    //if (m_playbackStartTime == 0) {
+    //    m_playbackStartTime = nTime;
+    //}
+
+    //const auto& actionFrames = *kf::g_actionTemplate->frames;
+    //if (actionFrames.empty()) {
+    //    return;
+    //}
+
+    //// 播放逻辑：以每帧33ms的间隔播放
+    //static const INT64 FRAME_DURATION = 33; // 每帧持续时间（30fps）
+    //INT64 elapsedTime = nTime - m_playbackStartTime;
+    //size_t frameIndex = (elapsedTime / FRAME_DURATION) % actionFrames.size(); // 循环播放
+
+    //if (frameIndex != m_currentFrameIndex) {
+    //    m_currentFrameIndex = frameIndex;
+    //    const auto& frameData = actionFrames[m_currentFrameIndex];
+
+    //    // 绘制标准动作骨架（蓝色）
+    //    for (const auto& joint : frameData.joints) {
+    //        auto screenPoint = BodyToScreen(joint.position, m_windowWidth, m_windowHeight);
+    //        DrawJoint(screenPoint, D2D1::ColorF(D2D1::ColorF::Blue)); // 蓝色
+    //    }
+    //}
+}
 
 /// <summary>
 /// Set the status bar message

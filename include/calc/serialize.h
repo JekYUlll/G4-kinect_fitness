@@ -38,10 +38,10 @@ struct FrameData {
 };
 
 // 序列化一帧的骨骼数据到文件
-bool serializeFrame(const std::string& filename, const FrameData& frame, bool append = false);
+bool SaveFrame(const std::string& filename, const FrameData& frame, bool append = false);
 
 // 从文件读取一帧骨骼数据
-bool deserializeFrame(const std::string& filename, FrameData& frame);
+bool LoadFrame(const std::string& filename, FrameData& frame);
 
 class ActionBuffer {
 private:

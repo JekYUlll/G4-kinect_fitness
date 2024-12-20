@@ -358,6 +358,7 @@
     <ClInclude Include="src\samples\ImageRenderer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="Resources\data\README.md" />
   </ItemGroup>
