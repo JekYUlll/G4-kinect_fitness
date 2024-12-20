@@ -53,7 +53,7 @@ namespace kf {
             std::vector<float> realZ = { jointReal.position.Z };
             std::vector<float> templateZ = { jointTemplate.position.Z };
 
-            // 分别计算 X、Y、Z 的回归误差并累加
+            // 分别计?? X、Y、Z 的回归误差并累加
             float errorX = calculateRegressionError(realX, templateX);
             float errorY = calculateRegressionError(realY, templateY);
             float errorZ = calculateRegressionError(realZ, templateZ);
@@ -88,100 +88,146 @@ namespace kf {
             });
     }
 #elif defined(USE_DTW)
-    // 将输入修改为更通用的 单维向量输入，保留线性回归误差计算的逻辑。
-    float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues) {
-        size_t n = realValues.size();
-        if (n != templateValues.size()) return std::numeric_limits<float>::infinity();
+    // 关节重要性权重
+    const std::unordered_map<JointType, float> JOINT_WEIGHTS = {
+        {JointType_SpineBase, 0.5f},
+        {JointType_SpineMid, 0.5f},
+        {JointType_SpineShoulder, 0.8f},
+        {JointType_Neck, 0.3f},
+        {JointType_Head, 0.3f},
+        {JointType_ShoulderLeft, 1.0f},
+        {JointType_ElbowLeft, 1.0f},
+        {JointType_WristLeft, 1.0f},
+        {JointType_HandLeft, 0.8f},
+        {JointType_ShoulderRight, 1.0f},
+        {JointType_ElbowRight, 1.0f},
+        {JointType_WristRight, 1.0f},
+        {JointType_HandRight, 0.8f},
+        {JointType_HipLeft, 0.8f},
+        {JointType_KneeLeft, 1.0f},
+        {JointType_AnkleLeft, 0.8f},
+        {JointType_FootLeft, 0.5f},
+        {JointType_HipRight, 0.8f},
+        {JointType_KneeRight, 1.0f},
+        {JointType_AnkleRight, 0.8f},
+        {JointType_FootRight, 0.5f}
+    };
 
-        if (n < 2) {
-            // 单点情况下，返回绝对误差
-            return std::fabs(realValues[0] - templateValues[0]);
+    float calculateJointSimilarity(const JointData& a, const JointData& b) {
+        if (a.type != b.type || 
+            a.trackingState == TrackingState_NotTracked || 
+            b.trackingState == TrackingState_NotTracked) {
+            return 0.0f;
         }
 
-        // 正常计算线性回归误差
-        Eigen::MatrixXf X(n, 2);
-        Eigen::VectorXf Y_real(n), Y_template(n);
+        // 使用Eigen::Vector3f进行位置差异计算
+        Eigen::Vector3f pos_a(a.position.X, a.position.Y, a.position.Z);
+        Eigen::Vector3f pos_b(b.position.X, b.position.Y, b.position.Z);
+        
+        // 计算欧氏距离
+        float distance = (pos_a - pos_b).norm();
 
-        for (size_t i = 0; i < n; ++i) {
-            X(i, 0) = static_cast<float>(i);
-            X(i, 1) = 1.0f;
-            Y_real(i) = realValues[i];
-            Y_template(i) = templateValues[i];
-        }
+        // 调整sigma值使得相似度计算更合理
+        const float sigma = 1.0f; // 增大sigma值，使得相似度衰减更平缓
+        float similarity = std::exp(-distance * distance / (2.0f * sigma * sigma));
 
-        Eigen::Vector2f beta_real = (X.transpose() * X).ldlt().solve(X.transpose() * Y_real);
-        Eigen::Vector2f beta_template = (X.transpose() * X).ldlt().solve(X.transpose() * Y_template);
-
-        float residualError = 0.0f;
-        for (size_t i = 0; i < n; ++i) {
-            float predicted_real = beta_real(0) * i + beta_real(1);
-            float predicted_template = beta_template(0) * i + beta_template(1);
-            residualError += std::pow(predicted_real - predicted_template, 2);
-        }
-
-        return std::sqrt(residualError / n);
+        // 应用权重
+        auto weightIt = JOINT_WEIGHTS.find(a.type);
+        float weight = weightIt != JOINT_WEIGHTS.end() ? weightIt->second : 0.5f;
+        
+        return similarity * weight;
     }
 
-    // 比较两个动作帧
+    // 修改 compareFrames 函数
     float compareFrames(const FrameData& realFrame, const FrameData& templateFrame) {
-        if (realFrame.joints.size() != templateFrame.joints.size())
-            return std::numeric_limits<float>::infinity();
+        if (realFrame.joints.size() != templateFrame.joints.size()) {
+            return 0.0f;
+        }
 
-        float totalError = 0.0f;
+        const size_t jointCount = realFrame.joints.size();
+        float totalSimilarity = 0.0f;
+        float totalWeight = 0.0f;
 
-        for (size_t i = 0; i < realFrame.joints.size(); ++i) {
+        // 计算每个关节的相似度
+        for (size_t i = 0; i < jointCount; ++i) {
             const auto& jointReal = realFrame.joints[i];
             const auto& jointTemplate = templateFrame.joints[i];
-
-            std::vector<float> realX = { jointReal.position.X };
-            std::vector<float> templateX = { jointTemplate.position.X };
-            std::vector<float> realY = { jointReal.position.Y };
-            std::vector<float> templateY = { jointTemplate.position.Y };
-            std::vector<float> realZ = { jointReal.position.Z };
-            std::vector<float> templateZ = { jointTemplate.position.Z };
-
-            float errorX = calculateRegressionError(realX, templateX);
-            float errorY = calculateRegressionError(realY, templateY);
-            float errorZ = calculateRegressionError(realZ, templateZ);
-
-            totalError += (errorX + errorY + errorZ);
+            
+            auto weightIt = JOINT_WEIGHTS.find(jointReal.type);
+            float weight = weightIt != JOINT_WEIGHTS.end() ? weightIt->second : 0.5f;
+            
+            float similarity = calculateJointSimilarity(jointReal, jointTemplate);
+            totalSimilarity += similarity * weight;
+            totalWeight += weight;
         }
 
-        return totalError / realFrame.joints.size();
+        return totalWeight > 0 ? (totalSimilarity / totalWeight) : 0.0f;
     }
-    // DTW 比较函数
-    // 将缓冲区与模板动作中的每一帧调用 compareFrames 进行帧距离计算，并使用动态时间规整（DTW）算法求解最小代价路径。
+
+    // 修改 computeDTW 函数
     float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames) {
-        size_t M = realFrames.size();
-        size_t N = templateFrames.size();
+        const size_t M = realFrames.size();
+        const size_t N = templateFrames.size();
 
-        // 创建代价矩阵
-        Eigen::MatrixXf dtwMatrix = Eigen::MatrixXf::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
-        dtwMatrix(0, 0) = 0.0f;
+        if (M == 0 || N == 0) {
+            return 0.0f;
+        }
 
-        // 填充 DTW 代价矩阵
-        for (size_t i = 1; i <= M; ++i) {
-            for (size_t j = 1; j <= N; ++j) {
-                float cost = compareFrames(realFrames[i - 1], templateFrames[j - 1]);
-                dtwMatrix(i, j) = cost + std::min({ dtwMatrix(i - 1, j),    // 删除操作
-                                                  dtwMatrix(i, j - 1),    // 插入操作
-                                                  dtwMatrix(i - 1, j - 1) }); // 匹配操作
+        // 使用Eigen矩阵存储DTW计算结果
+        Eigen::MatrixXf dtw = Eigen::MatrixXf::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
+        dtw(0, 0) = 0.0f;
+
+        // 预计算所有帧对的相似度
+        Eigen::MatrixXf similarityMatrix(M, N);
+        for (size_t i = 0; i < M; ++i) {
+            for (size_t j = 0; j < N; ++j) {
+                similarityMatrix(i, j) = compareFrames(realFrames[i], templateFrames[j]);
             }
         }
 
-        return dtwMatrix(M, N); // 返回 DTW 的最小匹配代价
+        // DTW动态规划计算
+        for (size_t i = 1; i <= M; ++i) {
+            for (size_t j = 1; j <= N; ++j) {
+                float cost = 1.0f - similarityMatrix(i-1, j-1);
+                float min_cost = std::min({
+                    dtw(i-1, j),   // 插入
+                    dtw(i, j-1),   // 删除
+                    dtw(i-1, j-1)  // 匹配
+                });
+                dtw(i, j) = cost + min_cost;
+            }
+        }
+
+        // 计算归一化的相似度分数
+        float dtwDistance = dtw(M, N);
+        float pathLength = M + N;
+        
+        // 使用改进的相似度映射函数
+        float normalizedDistance = dtwDistance / pathLength;
+        float similarity = 1.0f / (1.0f + normalizedDistance);
+        
+        // 确保相似度在[0,1]范围内
+        return std::max(0.0f, std::min(1.0f, similarity));
     }
-    // 比较动作缓冲区与标准模板
+
+    // 修改 compareActionBuffer 函数
     float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate) {
-        // 获取缓冲区中的帧和模板动作帧
         const auto& realDeque = buffer.getFrames();
         const auto& templateFrames = actionTemplate.getFrames();
 
-        if (realDeque.empty() || templateFrames.empty())
-            return std::numeric_limits<float>::infinity();
-        // 将 deque 转换为 vector
-        std::vector<kf::FrameData> realFrames(realDeque.begin(), realDeque.end());
-        // 调用 DTW 进行帧级匹配
+        if (realDeque.empty() || templateFrames.empty()) {
+            return 0.0f;
+        }
+
+        std::vector<FrameData> realFrames(realDeque.begin(), realDeque.end());
+        
+        // 如果帧数差异太大，进行简单的帧插值
+        if (realFrames.size() > templateFrames.size() * 2 || 
+            realFrames.size() * 2 < templateFrames.size()) {
+            // 可以在这里添加帧插值逻辑
+            return 0.0f;
+        }
+        
         return computeDTW(realFrames, templateFrames);
     }
 

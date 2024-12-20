@@ -684,11 +684,10 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                     if (!comparisonFuture.valid() || comparisonFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
                         comparisonFuture = std::async(std::launch::async, [this]() {
                             if (kf::g_actionTemplate) { // 确保标准动作已加载
-                                float error = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
-                                float similarity = 1.0f / (1.0f + error);
+                                float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
 
                                 // 记录相似度
-                                LOG_T("当前动作与标准动作的相似度: {:.2f}", similarity);
+                                LOG_T("当前动作与标准动作的相似度: {:.2f}%", similarity * 100.0f);
 
                                 // 更新相似度数值（线程安全）
                                 m_fCurrentSimilarity = similarity;
