@@ -100,12 +100,12 @@ public:
     }
 };
 
-        // 全局变量
-        extern std::mutex templateMutex;
-        extern std::unique_ptr<ActionTemplate> g_actionTemplate;
+// 全局变量
+extern std::mutex templateMutex;
+extern std::unique_ptr<ActionTemplate> g_actionTemplate;
 
-        // 异步加载标准动作
-        std::future<bool> loadStandardActionAsync(const std::string& filePath);
+// 异步加载标准动作
+std::future<bool> loadStandardActionAsync(const std::string& filePath);
 
         
 

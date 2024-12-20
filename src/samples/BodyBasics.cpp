@@ -44,6 +44,9 @@ Application::Application() :
     m_isPlayingTemplate(false),
     m_playbackStartTime(0),
     m_currentFrameIndex(0),
+    m_pBrushJointTemplate(nullptr),
+    m_pBrushBoneTemplate(nullptr),
+    c_BoneThickness(4.0f),
     m_fCurrentSimilarity(0.0f)
 {
     LARGE_INTEGER qpf = {0};
@@ -566,8 +569,8 @@ HRESULT Application::InitializeDefaultSensor()
 /// <param name="nBodyCount">body data count</param>
 /// <param name="ppBodies">body data in frame</param>
 /// </summary>
-void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
-{
+void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) 
+{ 
     if (!m_pRenderTarget || !m_isCalcing) {
         return;
     }
@@ -582,6 +585,37 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     static std::future<void> comparisonFuture;                // 异步计算相似度任务
     static INT64 lastRecordedTime = 0;                        // 上次记录时间戳
     static std::mutex recordMutex;                            // 记录互斥锁
+
+    // 首先绘制标准动作（如果存在且正在计算相似度）
+    if (m_isCalcing && kf::g_actionTemplate) {
+        std::lock_guard<std::mutex> lock(kf::templateMutex);
+        const auto& frames = kf::g_actionTemplate->getFrames();
+        
+        if (!frames.empty()) {
+            // 初始化播放起点时间
+            static INT64 templateStartTime = 0;
+            if (templateStartTime == 0) {
+                templateStartTime = nTime;
+            }
+
+            // 使用recordInterval来控制播放速度
+            INT64 elapsedTime = nTime - templateStartTime;
+            size_t frameIndex = (elapsedTime / kf::recordInterval) % frames.size();
+            
+            const auto& templateFrame = frames[frameIndex];
+            
+            // 准备关节点数据
+            D2D1_POINT_2F templateJointPoints[JointType_Count];
+            
+            // 将模板骨骼数据转换为屏幕坐标
+            for (const auto& joint : templateFrame.joints) {
+                templateJointPoints[joint.type] = BodyToScreen(joint.position, width, height);
+            }
+            
+            // 绘制模板骨骼
+            DrawTemplateBody(templateFrame.joints.data(), templateJointPoints);
+        }
+    }
 
     if (m_isRecording) {
         // 创建录制文件名
@@ -643,7 +677,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                         std::async(std::launch::async, [this, frameData]() {
                             std::lock_guard<std::mutex> lock(recordMutex);
                             kf::SaveFrame(m_recordFilePath, frameData, true);
-                            });
+                        });
                     }
 
                     // 异步计算与标准动作的相似度
@@ -662,12 +696,15 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                                 // 通知主线程重绘
                                 InvalidateRect(m_hWnd, NULL, FALSE);
                             }
-                            });
+                        });
                     }
                 }
             }
         }
     }
+
+    // 播放标准动作模板
+    PlayActionTemplate(nTime);
 
     // 计算 FPS 并显示状态
     if (!m_nStartTime) {
@@ -693,41 +730,164 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     }
 }
 
+
 void Application::DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies)
 {
 }
 
-void Application::PlayActionTemplate(INT64 nTime)
+void Application::PlayActionTemplate(INT64 nTime) {
+    if (!m_isPlayingTemplate || !kf::g_actionTemplate) {
+        return; // 未打开播放或模板未加载
+    }
+
+    std::lock_guard<std::mutex> lock(kf::templateMutex); // 确保线程安全
+    const auto& actionTemplate = *kf::g_actionTemplate;
+
+    const auto& actionFrames = actionTemplate.getFrames();
+    if (actionFrames.empty()) {
+        return; // 无有效帧
+    }
+
+    // 初始化播放起点时间
+    if (m_playbackStartTime == 0) {
+        m_playbackStartTime = nTime;
+    }
+
+    // 使用recordInterval来控制播放速度
+    INT64 elapsedTime = nTime - m_playbackStartTime;
+    size_t frameIndex = (elapsedTime / kf::recordInterval) % actionTemplate.getFrameCount();
+
+    // 如果当前帧发生变化，更新当前帧并绘制
+    if (frameIndex != m_currentFrameIndex) {
+        m_currentFrameIndex = frameIndex;
+        const auto& frameData = actionFrames[m_currentFrameIndex];
+
+        // 准备骨架点
+        D2D1_POINT_2F jointPoints[JointType_Count];
+        for (const auto& jointData : frameData.joints) {
+            jointPoints[jointData.type] = BodyToScreen(jointData.position, cColorWidth, cColorHeight);
+        }
+
+        // 定义骨骼连接关系
+        static const std::vector<std::pair<JointType, JointType>> bonePairs = {
+            {JointType_Head, JointType_Neck},
+            {JointType_Neck, JointType_SpineShoulder},
+            {JointType_SpineShoulder, JointType_SpineMid},
+            {JointType_SpineMid, JointType_SpineBase},
+            {JointType_SpineShoulder, JointType_ShoulderRight},
+            {JointType_SpineShoulder, JointType_ShoulderLeft},
+            {JointType_SpineBase, JointType_HipRight},
+            {JointType_SpineBase, JointType_HipLeft},
+            {JointType_ShoulderRight, JointType_ElbowRight},
+            {JointType_ElbowRight, JointType_WristRight},
+            {JointType_WristRight, JointType_HandRight},
+            {JointType_ShoulderLeft, JointType_ElbowLeft},
+            {JointType_ElbowLeft, JointType_WristLeft},
+            {JointType_WristLeft, JointType_HandLeft},
+            {JointType_HipRight, JointType_KneeRight},
+            {JointType_KneeRight, JointType_AnkleRight},
+            {JointType_AnkleRight, JointType_FootRight},
+            {JointType_HipLeft, JointType_KneeLeft},
+            {JointType_KneeLeft, JointType_AnkleLeft},
+            {JointType_AnkleLeft, JointType_FootLeft},
+        };
+
+        // 绘制骨骼
+        for (const auto& bone : bonePairs) {
+            const auto& joint0 = frameData.joints[bone.first];
+            const auto& joint1 = frameData.joints[bone.second];
+
+            if (joint0.trackingState == TrackingState_NotTracked || joint1.trackingState == TrackingState_NotTracked) {
+                continue; // 跳过未跟踪的骨骼
+            }
+
+            auto brush = (joint0.trackingState == TrackingState_Tracked && joint1.trackingState == TrackingState_Tracked)
+                ? m_pBrushBoneTracked
+                : m_pBrushBoneInferred;
+
+            m_pRenderTarget->DrawLine(
+                jointPoints[bone.first],
+                jointPoints[bone.second],
+                brush,
+                2.0f
+            );
+        }
+
+        // 绘制关节
+        for (const auto& jointData : frameData.joints) {
+            auto brush = (jointData.trackingState == TrackingState_Tracked)
+                ? m_pBrushJointTracked
+                : m_pBrushJointInferred;
+
+            m_pRenderTarget->DrawEllipse(
+                D2D1::Ellipse(jointPoints[jointData.type], 5.0f, 5.0f),
+                brush
+            );
+        }
+    }
+}
+
+void Application::DrawTemplateBody(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints)
 {
-    //if (!m_isPlayingTemplate || !kf::g_actionTemplate || !kf::g_actionTemplate->frames) {
-    //    return; // 未打开播放或模板未加载
-    //}
+    if (!m_pRenderTarget || !m_pBrushJointTemplate || !m_pBrushBoneTemplate) {
+        LOG_E("Required template D2D resources are NULL");
+        return;
+    }
 
-    //// 确保播放起点时间初始化
-    //if (m_playbackStartTime == 0) {
-    //    m_playbackStartTime = nTime;
-    //}
+    // 绘制骨骼
+    // Torso
+    DrawTemplateBone(pJoints, pJointPoints, JointType_Head, JointType_Neck);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_Neck, JointType_SpineShoulder);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineShoulder, JointType_SpineMid);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineMid, JointType_SpineBase);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineShoulder, JointType_ShoulderRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineShoulder, JointType_ShoulderLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineBase, JointType_HipRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_SpineBase, JointType_HipLeft);
 
-    //const auto& actionFrames = *kf::g_actionTemplate->frames;
-    //if (actionFrames.empty()) {
-    //    return;
-    //}
+    // Right Arm
+    DrawTemplateBone(pJoints, pJointPoints, JointType_ShoulderRight, JointType_ElbowRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_ElbowRight, JointType_WristRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_WristRight, JointType_HandRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_HandRight, JointType_HandTipRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_WristRight, JointType_ThumbRight);
 
-    //// 播放逻辑：以每帧33ms的间隔播放
-    //static const INT64 FRAME_DURATION = 33; // 每帧持续时间（30fps）
-    //INT64 elapsedTime = nTime - m_playbackStartTime;
-    //size_t frameIndex = (elapsedTime / FRAME_DURATION) % actionFrames.size(); // 循环播放
+    // Left Arm
+    DrawTemplateBone(pJoints, pJointPoints, JointType_ShoulderLeft, JointType_ElbowLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_ElbowLeft, JointType_WristLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_WristLeft, JointType_HandLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_HandLeft, JointType_HandTipLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_WristLeft, JointType_ThumbLeft);
 
-    //if (frameIndex != m_currentFrameIndex) {
-    //    m_currentFrameIndex = frameIndex;
-    //    const auto& frameData = actionFrames[m_currentFrameIndex];
+    // Right Leg
+    DrawTemplateBone(pJoints, pJointPoints, JointType_HipRight, JointType_KneeRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_KneeRight, JointType_AnkleRight);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_AnkleRight, JointType_FootRight);
 
-    //    // 绘制标准动作骨架（蓝色）
-    //    for (const auto& joint : frameData.joints) {
-    //        auto screenPoint = BodyToScreen(joint.position, m_windowWidth, m_windowHeight);
-    //        DrawJoint(screenPoint, D2D1::ColorF(D2D1::ColorF::Blue)); // 蓝色
-    //    }
-    //}
+    // Left Leg
+    DrawTemplateBone(pJoints, pJointPoints, JointType_HipLeft, JointType_KneeLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_KneeLeft, JointType_AnkleLeft);
+    DrawTemplateBone(pJoints, pJointPoints, JointType_AnkleLeft, JointType_FootLeft);
+
+    // 绘制关节点
+    for (int i = 0; i < JointType_Count; ++i) {
+        D2D1_ELLIPSE ellipse = D2D1::Ellipse(pJointPoints[i], c_JointThickness, c_JointThickness);
+        m_pRenderTarget->FillEllipse(ellipse, m_pBrushJointTemplate);
+    }
+}
+
+void Application::DrawTemplateBone(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints, JointType joint0, JointType joint1)
+{
+    D2D1_POINT_2F joint0Position = pJointPoints[joint0];
+    D2D1_POINT_2F joint1Position = pJointPoints[joint1];
+
+    // 骨骼连接的状态检查（忽略推断的状态）
+    if (pJoints[joint0].trackingState == TrackingState_NotTracked ||
+        pJoints[joint1].trackingState == TrackingState_NotTracked) {
+        return;
+    }
+
+    m_pRenderTarget->DrawLine(joint0Position, joint1Position, m_pBrushBoneTemplate, c_BoneThickness);
 }
 
 /// <summary>
@@ -845,6 +1005,28 @@ HRESULT Application::EnsureDirect2DResources()
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Red), &m_pBrushHandClosed);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Green), &m_pBrushHandOpen);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &m_pBrushHandLasso);
+
+        // 创建标准动作的关节画刷（蓝色）
+        hr = m_pRenderTarget->CreateSolidColorBrush(
+            D2D1::ColorF(D2D1::ColorF::Blue), // 蓝色
+            &m_pBrushJointTemplate
+        );
+
+        if (FAILED(hr)) {
+            LOG_E("Failed to create joint brush for template.");
+            return hr;
+        }
+
+        // 创建标准动作的骨骼画刷（浅蓝色）
+        hr = m_pRenderTarget->CreateSolidColorBrush(
+            D2D1::ColorF(D2D1::ColorF::LightBlue), // 浅蓝色
+            &m_pBrushBoneTemplate
+        );
+
+        if (FAILED(hr)) {
+            LOG_E("Failed to create bone brush for template.");
+            return hr;
+        }
     }
 
     return hr;

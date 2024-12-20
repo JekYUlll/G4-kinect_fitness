@@ -9,9 +9,9 @@
 
 #include <Windows.h>
 #include <thread>
-#include <vector>  // 添加 vector 头文件
-#include <string>  // 添加 string 头文件
-#include <dwrite.h>  // 添加 DirectWrite 支持
+#include <vector>
+#include <string>
+#include <dwrite.h>
 #include <strsafe.h>
 
 #include "stdafx.h"
@@ -140,7 +140,9 @@ private:
     INT64 m_playbackStartTime;            // 播放开始时间
     size_t m_currentFrameIndex;           // 当前帧索引
 
-
+    ID2D1SolidColorBrush* m_pBrushJointTemplate; // 标准动作关节画刷
+    ID2D1SolidColorBrush* m_pBrushBoneTemplate;  // 标准动作骨骼画刷
+    float c_BoneThickness; // 标准动作骨骼厚度
     
 
     std::string m_recordFilePath;   // 添加文件路径成员
@@ -168,8 +170,13 @@ private:
 
     // 实时捕捉骨架绘制（绿色）
     void DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies);
+
     // 播放标准动作骨架（蓝色）
     void PlayActionTemplate(INT64 nTime);
+
+    void DrawTemplateBody(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints);
+
+    void DrawTemplateBone(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints, JointType joint0, JointType joint1);
 
     /// <summary>
     /// Set the status bar message

@@ -7,6 +7,7 @@ namespace kf {
     HWND hStartButton = nullptr;
     HWND hRecordButton = nullptr;
     HWND hPrintButton = nullptr;
+    HWND hPlayButton = nullptr;
 
     // 按钮点击事件处理函数
     void OnStartButtonClick() {
@@ -88,7 +89,7 @@ namespace kf {
             );
 
             // 创建播放按钮
-            hPrintButton = CreateWindow(
+            hPlayButton = CreateWindow(
                 L"BUTTON",                          // 窗口类名
                 L"Aid",                          // 按钮文本
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 样式
@@ -179,13 +180,15 @@ namespace kf {
                 OnPrintButtonClick();
                 break;
 
-            case 4: // Aid 按钮
+            case 4: // Play 按钮
                 OnAidButtonClick();
                 if (pApp->SwitchPlayingTemplate()) {
+                    SetWindowText(hPlayButton, L"Pause");
                     pApp->SetPlaybackStartTime(0); // 重置播放起点
                     LOG_I("Started playing action template.");
                 }
                 else {
+                    SetWindowText(hPlayButton, L"Play");
                     LOG_I("Stopped playing action template.");
                 }
                 //InvalidateRect(m_hWnd, NULL, FALSE); // 触发界面重绘
