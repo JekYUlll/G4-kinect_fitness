@@ -1,35 +1,50 @@
-#include <Windows.h>
-#include <strsafe.h>
-#include <string>
+#include <windows.h>
 #include <memory>
-
-#include "stdafx.h"
-#include "resource.h"
-#include "log/KFLog.h"
-#include "KFcommon.h"
-#include "ui/KFui.h"
 #include "samples/BodyBasics.h"
-#include "ConfigReader.hpp"
+#include "log/KFLog.h"
+#include "config.h"
 
-int main(int argc, char** argv)
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+                     _In_opt_ HINSTANCE hPrevInstance,
+                     _In_ LPWSTR lpCmdLine,
+                     _In_ int nCmdShow)
 {
-    {
-        const int border_length = 42;
-        std::string border = "--+" + std::string(border_length, '-') + "+--";
-        std::string empty_line = "| " + std::string(border_length, ' ') + " |";
-        std::cout << border << std::endl;
-        std::cout << "|   ____ _  _         _  _______ ____   |" << std::endl;
-        std::cout << "|  / ___| || |       | |/ /  ___/ ___|  |" << std::endl;
-        std::cout << "| | |  _| || |_ _____| ' /| |_ | |      |" << std::endl;
-        std::cout << "| | |_| |__   _|_____| . \\|  _|| |___   |" << std::endl;
-        std::cout << "|  \\____|  |_|       |_|\_\\_|   \\____|  |" << std::endl;
-        std::cout << border << std::endl;
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+
+    try {
+        // 创建主窗口
+        auto pApplication = std::make_unique<kf::BodyBasics>();
+        if (!pApplication) {
+            LOG_E("Failed to create application instance");
+            return 1;
+        }
+
+        // 初始化应用程序
+        HRESULT hr = pApplication->initialize(hInstance, nCmdShow);
+        if (FAILED(hr)) {
+            LOG_E("Failed to initialize application");
+            return 1;
+        }
+
+        // 运行消息循环
+        MSG msg = {0};
+        while (WM_QUIT != msg.message) {
+            if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            } else {
+                pApplication->update();
+            }
+        }
+
+        return static_cast<int>(msg.wParam);
+    } catch (const std::exception& e) {
+        LOG_E("Unhandled exception: %s", e.what());
+        return 1;
     }
+}
 
-    kf::Logger::Init();
-    LOG_I("Initializing G4 Kinect Fitness Platform...");
-    kf::InitConfig(KF_CONFIG_FILE);
-
-    Application application;
-    return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);
+int main() {
+    return wWinMain(GetModuleHandle(nullptr), nullptr, nullptr, SW_SHOWDEFAULT);
 }

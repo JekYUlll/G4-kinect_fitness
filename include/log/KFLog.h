@@ -16,7 +16,7 @@ namespace kf {
     public:
         Logger() = delete;
         Logger(const Logger&) = delete;
-        Logger &operator=(const Logger&) = delete;
+        Logger& operator=(const Logger&) = delete;
 
         static void Init();
 
