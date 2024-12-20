@@ -1,4 +1,4 @@
-file_path = skeleton_record_20241217_092356.dat
+file_path = skeleton_record_20241220_155010.dat
 window_width = 800
 window_height = 600
 frame_rate = 30

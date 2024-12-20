@@ -518,44 +518,37 @@ HRESULT Application::InitializeDefaultSensor()
         return hr;
     }
 
-    if (m_pKinectSensor)
-    {
+    if (m_pKinectSensor) {
         // 初始化 Kinect
         hr = m_pKinectSensor->Open();
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             // 获取坐标映射器
             hr = m_pKinectSensor->get_CoordinateMapper(&m_pCoordinateMapper);
         }
 
         // 初始化骨骼帧源
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             IBodyFrameSource* pBodyFrameSource = NULL;
             hr = m_pKinectSensor->get_BodyFrameSource(&pBodyFrameSource);
-            if (SUCCEEDED(hr))
-            {
+            if (SUCCEEDED(hr)) {
                 hr = pBodyFrameSource->OpenReader(&m_pBodyFrameReader);
             }
             SafeRelease(pBodyFrameSource);
         }
 
         // 初始化颜色帧源
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             IColorFrameSource* pColorFrameSource = NULL;
             hr = m_pKinectSensor->get_ColorFrameSource(&pColorFrameSource);
-            if (SUCCEEDED(hr))
-            {
+            if (SUCCEEDED(hr)) {
                 hr = pColorFrameSource->OpenReader(&m_pColorFrameReader);
             }
             SafeRelease(pColorFrameSource);
         }
     }
 
-    if (!m_pKinectSensor || FAILED(hr))
-    {
+    if (!m_pKinectSensor || FAILED(hr)) {
         LOG_E("No ready Kinect found!");
         return E_FAIL;
     }
@@ -569,8 +562,7 @@ HRESULT Application::InitializeDefaultSensor()
 /// <param name="nBodyCount">body data count</param>
 /// <param name="ppBodies">body data in frame</param>
 /// </summary>
-void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) 
-{ 
+void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
     if (!m_pRenderTarget || !m_isCalcing) {
         return;
     }
@@ -581,25 +573,26 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     int width = rct.right;
     int height = rct.bottom;
 
-    static kf::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE); // 动作缓冲区
+    static kf::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE);  // 动作缓冲区
     static std::future<void> comparisonFuture;                // 异步计算相似度任务
     static INT64 lastRecordedTime = 0;                        // 上次记录时间戳
     static std::mutex recordMutex;                            // 记录互斥锁
+    static INT64 lastCompareTime = 0;                         // 上次比较时间戳
 
     // 首先绘制标准动作（如果存在且正在计算相似度）
     if (m_isCalcing && kf::g_actionTemplate) {
         std::lock_guard<std::mutex> lock(kf::templateMutex);
         const auto& frames = kf::g_actionTemplate->getFrames();
         
-        if (!frames.empty()) {
+        // 只有在播放状态时才显示标准动作
+        if (!frames.empty() && m_isPlayingTemplate) {
             // 初始化播放起点时间
-            static INT64 templateStartTime = 0;
-            if (templateStartTime == 0) {
-                templateStartTime = nTime;
+            if (m_playbackStartTime == 0) {
+                m_playbackStartTime = nTime;
             }
 
             // 使用recordInterval来控制播放速度
-            INT64 elapsedTime = nTime - templateStartTime;
+            INT64 elapsedTime = nTime - m_playbackStartTime;
             size_t frameIndex = (elapsedTime / kf::recordInterval) % frames.size();
             
             const auto& templateFrame = frames[frameIndex];
@@ -620,13 +613,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
     if (m_isRecording) {
         // 创建录制文件名
         if (m_recordFilePath.empty()) {
-            SYSTEMTIME st;
-            GetLocalTime(&st);
-            char fileName[256];
-            sprintf_s(fileName, "skeleton_record_%04d%02d%02d_%02d%02d%02d.dat",
-                st.wYear, st.wMonth, st.wDay,
-                st.wHour, st.wMinute, st.wSecond);
-            m_recordFilePath = fileName;
+            m_recordFilePath = kf::generateRecordingPath();
             LOG_I("Started recording to file: {}", m_recordFilePath);
         }
     }
@@ -664,13 +651,23 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
 
                     actionBuffer.addFrame(frameData); // 添加到动作缓冲区
 
+                    // 定期计算相似度
+                    if (nTime - lastCompareTime >= kf::recordInterval) {
+                        lastCompareTime = nTime;
+                        if (kf::g_actionTemplate) {
+                            auto future = kf::compareActionAsync(actionBuffer);
+                            m_fCurrentSimilarity = future.get();
+                        }
+                    }
+
                     // 绘制骨骼和手部状态
                     DrawBody(joints, jointPoints);
                     DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
                     DrawHand(rightHandState, jointPoints[JointType_HandRight]);
 
                     // 序列化当前帧
-                    if (m_isRecording && !m_recordFilePath.empty() && (nTime - lastRecordedTime >= kf::recordInterval)) {
+                    if (m_isRecording && !m_recordFilePath.empty() && 
+                        (nTime - lastRecordedTime >= kf::recordInterval)) {
                         lastRecordedTime = nTime;  // 更新上次记录时间
 
                         // 异步保存当前帧
@@ -679,53 +676,9 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies)
                             kf::SaveFrame(m_recordFilePath, frameData, true);
                         });
                     }
-
-                    // 异步计算与标准动作的相似度
-                    if (!comparisonFuture.valid() || comparisonFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-                        comparisonFuture = std::async(std::launch::async, [this]() {
-                            if (kf::g_actionTemplate) { // 确保标准动作已加载
-                                float similarity = kf::compareActionBuffer(actionBuffer, *kf::g_actionTemplate);
-
-                                // 记录相似度
-                                LOG_T("当前动作与标准动作的相似度: {:.2f}%", similarity * 100.0f);
-
-                                // 更新相似度数值（线程安全）
-                                m_fCurrentSimilarity = similarity;
-
-                                // 通知主线程重绘
-                                InvalidateRect(m_hWnd, NULL, FALSE);
-                            }
-                        });
-                    }
                 }
             }
         }
-    }
-
-    // 播放标准动作模板
-    PlayActionTemplate(nTime);
-
-    // 计算 FPS 并显示状态
-    if (!m_nStartTime) {
-        m_nStartTime = nTime;
-    }
-
-    double fps = 0.0;
-    LARGE_INTEGER qpcNow = { 0 };
-    if (m_fFreq) {
-        if (QueryPerformanceCounter(&qpcNow)) {
-            if (m_nLastCounter) {
-                m_nFramesSinceUpdate++;
-                fps = m_fFreq * m_nFramesSinceUpdate / double(qpcNow.QuadPart - m_nLastCounter);
-            }
-        }
-    }
-
-    WCHAR szStatusMessage[64];
-    StringCchPrintf(szStatusMessage, _countof(szStatusMessage), L" FPS = %0.2f    Time = %I64d", fps, (nTime - m_nStartTime));
-    if (SetStatusMessage(szStatusMessage, 1000, false)) {
-        m_nLastCounter = qpcNow.QuadPart;
-        m_nFramesSinceUpdate = 0;
     }
 }
 
@@ -1005,7 +958,7 @@ HRESULT Application::EnsureDirect2DResources()
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Green), &m_pBrushHandOpen);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &m_pBrushHandLasso);
 
-        // 创建标准动作的关节画刷（蓝色）
+        // 创建标准动作的关节画笔（蓝色）
         hr = m_pRenderTarget->CreateSolidColorBrush(
             D2D1::ColorF(D2D1::ColorF::Blue), // 蓝色
             &m_pBrushJointTemplate

@@ -91,7 +91,7 @@ namespace kf {
             // 创建播放按钮
             hPlayButton = CreateWindow(
                 L"BUTTON",                          // 窗口类名
-                L"Aid",                          // 按钮文本
+                L"Play",                           // 初始文本为"Play"
                 WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // 样式
                 340,                                // x 位置
                 10,                                 // y 位置
@@ -120,7 +120,7 @@ namespace kf {
             // PAINTSTRUCT ps;
             // HDC hdc = BeginPaint(hwnd, &ps);
             // EndPaint(hwnd, &ps);
-            ValidateRect(hwnd, NULL);  // 告诉系统区域已更新，避免重复发送 WM_PAINT
+            ValidateRect(hwnd, NULL);  // ???诉系统区域已更新，避免重复发送 WM_PAINT
             return 0;
         }
 
@@ -181,17 +181,17 @@ namespace kf {
                 break;
 
             case 4: // Play 按钮
-                OnAidButtonClick();
-                if (pApp->SwitchPlayingTemplate()) {
-                    SetWindowText(hPlayButton, L"Pause");
+                if (!pApp->IsPlayingTemplate()) {
+                    pApp->SetPlayingTemplate(true);
+                    SetWindowText(hPlayButton, L"Stop");
                     pApp->SetPlaybackStartTime(0); // 重置播放起点
-                    LOG_I("Started playing action template.");
+                    LOG_I("Started playing standard action template");
                 }
                 else {
+                    pApp->SetPlayingTemplate(false);
                     SetWindowText(hPlayButton, L"Play");
-                    LOG_I("Stopped playing action template.");
+                    LOG_I("Stopped playing standard action template");
                 }
-                //InvalidateRect(m_hWnd, NULL, FALSE); // 触发界面重绘
                 break;
             }
 

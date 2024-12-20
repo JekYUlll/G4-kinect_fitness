@@ -6,6 +6,7 @@
 #include <sstream>
 #include <algorithm>
 #include "log/KFLog.h"
+#include "calc/serialize.h"
 
 namespace kf {
 
@@ -35,6 +36,7 @@ namespace kf {
                     value = Trim(value);
                     if (key == "file_path") {
                         config.std_file_path = value;
+                        LOG_I("读取标准动作文件路径: {}", value);
                     }
                     else if (key == "window_width") {
                         config.window_width = std::stoi(value);
@@ -55,18 +57,29 @@ namespace kf {
         return config;
     }
 
-    inline void InitConfig(const std::string& configFilePath) {
-        auto config = kf::ReadConfig(configFilePath);
-        kf::std_file_path = config.std_file_path;
-        kf::window_width = config.window_width;
-        kf::window_height = config.window_height;
-        LOG_D("标准动作文件路径: {}", kf::std_file_path);
-        LOG_D("分辨率: {0} * {1}", kf::window_width, kf::window_height);
+    inline void InitConfig(const std::string& configFile) {
+        LOG_I("开始读取配置文件: {}", configFile);
+        
+        Config config = ReadConfig(configFile);
+        
+        if (config.std_file_path.empty()) {
+            LOG_E("标准动作文件路径未设置");
+            return;
+        }
+
+        LOG_I("标准动作文件路径设置为: {}", config.std_file_path);
+
         // 加载标准动作
-        kf::g_actionTemplate = std::make_unique<kf::ActionTemplate>(kf::std_file_path);
-        /*if (kf::g_actionTemplate && !kf::g_actionTemplate->getFrames().empty()) {
-            LOG_I("标准动作加载成功! 共有 {} 帧数据。", kf::g_actionTemplate->getFrameCount());
-        }*/
+        try {
+            g_actionTemplate = std::make_unique<ActionTemplate>(config.std_file_path);
+            if (g_actionTemplate && !g_actionTemplate->getFrames().empty()) {
+                LOG_I("标准动作加载成功! 共有 {} 帧数据。", g_actionTemplate->getFrameCount());
+            } else {
+                LOG_E("标准动作加载失败或帧数为0");
+            }
+        } catch (const std::exception& e) {
+            LOG_E("加载标准动作时发生异常: {}", e.what());
+        }
     }
 }
 

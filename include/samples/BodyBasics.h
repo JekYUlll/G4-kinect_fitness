@@ -85,8 +85,14 @@ public:
 
     [[nodiscard]] inline ID2D1HwndRenderTarget* GetRenderTarget() const { return m_pRenderTarget; }
 
-    //inline void SetPlayingTemplate(bool isPlayingTemplate) { m_isPlayingTemplate = isPlayingTemplate; }
-    inline bool SwitchPlayingTemplate() { m_isPlayingTemplate = !m_isPlayingTemplate; return m_isPlayingTemplate; }
+    // Getter 和 Setter for m_isPlayingTemplate
+    [[nodiscard]] inline bool IsPlayingTemplate() const { return m_isPlayingTemplate; }
+    inline void SetPlayingTemplate(bool isPlaying) { 
+        m_isPlayingTemplate = isPlaying;
+        if (!isPlaying) {
+            m_playbackStartTime = 0; // 停止时重置播放时间
+        }
+    }
 
     inline void SetCurrentFrameIndex(const size_t& currentFrameIndex) { m_currentFrameIndex = currentFrameIndex; }
 
@@ -137,8 +143,8 @@ private:
     bool m_isRecording;             // 是否正在录制
     bool m_isCalcing;               // 是否正在计算
     bool m_isPlayingTemplate;       // 是否显示标准动作
-    INT64 m_playbackStartTime;            // 播放开始时间
-    size_t m_currentFrameIndex;           // 当前帧索引
+    INT64 m_playbackStartTime;      // 播放开始时间
+    size_t m_currentFrameIndex;     // 当前帧索引
 
     ID2D1SolidColorBrush* m_pBrushJointTemplate; // 标准动作关节画刷
     ID2D1SolidColorBrush* m_pBrushBoneTemplate;  // 标准动作骨骼画刷

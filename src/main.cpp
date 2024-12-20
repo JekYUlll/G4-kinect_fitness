@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 
     kf::Logger::Init();
     LOG_I("Initializing G4 Kinect Fitness Platform...");
-    kf::InitConfig(CONFIG_PATH);
+    kf::InitConfig(KF_CONFIG_FILE);
 
     Application application;
     return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);

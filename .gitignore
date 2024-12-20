@@ -5,3 +5,7 @@ BodyBasics-D2D/
 *.dat
 External/Eigen/
 External/spdlog/
+kinect_fitness/
+data/
+build/
+out/

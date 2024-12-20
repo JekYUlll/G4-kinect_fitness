@@ -74,9 +74,22 @@ namespace kf {
     // 构造函数，加载标准动作文件
     ActionTemplate::ActionTemplate(const std::string& filePath) {
         frames = std::make_unique<std::vector<kf::FrameData>>();
-        if (!loadFromFile(filePath)) {
-            throw std::runtime_error("Failed to load action template from file: " + filePath);
-            LOG_E("Failed to load action template from file: {}", filePath);
+        
+        LOG_I("开始加载标准动作文件: {}", filePath);
+        
+        // 确保目录存在
+        if (!kf::ensureDirectoryExists()) {
+            LOG_E("无法确保目录结构存在");
+            throw std::runtime_error("Failed to ensure directory structure");
+        }
+
+        // 获取完整路径
+        std::string fullPath = kf::getStandardActionPath(filePath);
+        LOG_I("标准动作文件完整路径: {}", fullPath);
+        
+        if (!loadFromFile(fullPath)) {
+            LOG_E("无法从文件加载标准动作: {}", fullPath);
+            throw std::runtime_error("Failed to load action template from file: " + fullPath);
         }
     }
 
@@ -84,25 +97,33 @@ namespace kf {
     bool ActionTemplate::loadFromFile(const std::string& filename) {
         try {
             std::ifstream in(filename, std::ios::binary);
-            if (!in) return false;
+            if (!in) {
+                LOG_E("无法打开标准动作文件: {}", filename);
+                return false;
+            }
 
             frames->clear();
+            size_t frameCount = 0;
             while (in.peek() != EOF) {
                 kf::FrameData frame;
                 frame.deserialize(in);
                 frames->push_back(frame);
+                frameCount++;
             }
 
             in.close();
-            // 打印加载的动作帧日志
-            LOG_I("Successfully loaded action template from file: {}", filename);
-            LOG_I("Total frames loaded: {}", frames->size());
-
-            //PrintData();
+            LOG_I("成功加载标准动作文件: {}", filename);
+            LOG_I("总共加载帧数: {}", frameCount);
+            LOG_I("第一帧关节数: {}", frames->empty() ? 0 : frames->front().joints.size());
 
             return true;
         }
+        catch (const std::exception& e) {
+            LOG_E("加载标准动作文件时发生异常: {}", e.what());
+            return false;
+        }
         catch (...) {
+            LOG_E("加载标准动作文件时发生未知异常");
             return false;
         }
     }
