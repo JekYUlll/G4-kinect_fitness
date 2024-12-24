@@ -351,7 +351,6 @@
     <ClInclude Include="include\log\KFLog.h" />
     <ClInclude Include="include\KFcommon.h" />
     <ClInclude Include="include\resource.h" />
-    <ClInclude Include="include\samples\ImageRenderer.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\ui\KFui.h" />
     <ClInclude Include="src\samples\ColorBasics.h" />

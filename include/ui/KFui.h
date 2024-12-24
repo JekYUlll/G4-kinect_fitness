@@ -3,10 +3,10 @@
 
 #include <windows.h>
 #include <iostream>
-#include <log/KFLog.h>
-#include "KFcommon.h"
-#include <d3d11.h>
 #include <d2d1.h>
+
+#include "log/KFLog.h"
+#include "KFcommon.h"
 
 namespace kf {
 

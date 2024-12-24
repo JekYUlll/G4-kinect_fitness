@@ -4,9 +4,9 @@
 namespace kf {
 
 // 基础配置
-#define WRITE_TO_FILE true
-#define WINDOW_TITLE L"G4-KinectFitness"
-#define ACTION_BUFFER_SIZE 30
+//#define WRITE_TO_FILE true
+//#define WINDOW_TITLE L"G4-KinectFitnessCoach"
+#define ACTION_BUFFER_SIZE 120
 
 // 路径相关定义
 #define KF_DATA_DIR "data"          // 录制文件存储目录

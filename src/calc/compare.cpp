@@ -1,14 +1,117 @@
 #include "calc/compare.h"
 #include <Eigen/Dense>
+#include <map>
 
 namespace kf {
+    // 定义关节权重映射
+    static const std::map<JointType, float> jointWeights = {
+        // 手部关节权重最高
+        {JointType_HandRight, 2.0f},
+        {JointType_HandLeft, 2.0f},
+        {JointType_HandTipRight, 2.0f},
+        {JointType_HandTipLeft, 2.0f},
+        {JointType_ThumbRight, 2.0f},
+        {JointType_ThumbLeft, 2.0f},
+        
+        // 手臂关节次之
+        {JointType_ElbowRight, 1.5f},
+        {JointType_ElbowLeft, 1.5f},
+        {JointType_WristRight, 1.5f},
+        {JointType_WristLeft, 1.5f},
+        {JointType_ShoulderRight, 1.5f},
+        {JointType_ShoulderLeft, 1.5f},
+        
+        // 躯干关节权重适中
+        {JointType_SpineShoulder, 1.2f},
+        {JointType_SpineMid, 1.2f},
+        {JointType_SpineBase, 1.2f},
+        
+        // 腿部关节权重较低
+        {JointType_HipRight, 1.0f},
+        {JointType_HipLeft, 1.0f},
+        {JointType_KneeRight, 1.0f},
+        {JointType_KneeLeft, 1.0f},
+        {JointType_AnkleRight, 0.8f},
+        {JointType_AnkleLeft, 0.8f},
+        {JointType_FootRight, 0.8f},
+        {JointType_FootLeft, 0.8f},
+        
+        // 头部关节
+        {JointType_Head, 1.0f},
+        {JointType_Neck, 1.0f}
+    };
 
-    // 计算两个关节位置的欧氏距离
+    // 定义骨骼连接关系，用于计算相对角度
+    static const std::vector<std::pair<JointType, JointType>> boneConnections = {
+        // 躯干
+        {JointType_SpineBase, JointType_SpineMid},
+        {JointType_SpineMid, JointType_SpineShoulder},
+        {JointType_SpineShoulder, JointType_Neck},
+        {JointType_Neck, JointType_Head},
+        // 右臂
+        {JointType_SpineShoulder, JointType_ShoulderRight},
+        {JointType_ShoulderRight, JointType_ElbowRight},
+        {JointType_ElbowRight, JointType_WristRight},
+        {JointType_WristRight, JointType_HandRight},
+        // 左臂
+        {JointType_SpineShoulder, JointType_ShoulderLeft},
+        {JointType_ShoulderLeft, JointType_ElbowLeft},
+        {JointType_ElbowLeft, JointType_WristLeft},
+        {JointType_WristLeft, JointType_HandLeft}
+    };
+
+    // 原始的欧氏距离计算方法（保留作为参考）
     float calculateJointDistance(const CameraSpacePoint& a, const CameraSpacePoint& b) {
         float dx = a.X - b.X;
         float dy = a.Y - b.Y;
         float dz = a.Z - b.Z;
         return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    // 计算向量
+    struct Vector3 {
+        float x, y, z;
+        Vector3(const CameraSpacePoint& p) : x(p.X), y(p.Y), z(p.Z) {}
+        Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+        Vector3 operator-(const Vector3& other) const {
+            return Vector3(x - other.x, y - other.y, z - other.z);
+        }
+        float length() const {
+            return std::sqrt(x*x + y*y + z*z);
+        }
+        Vector3 normalize() const {
+            float len = length();
+            if (len < 1e-6f) return Vector3(0, 0, 0);
+            return Vector3(x/len, y/len, z/len);
+        }
+        float dot(const Vector3& other) const {
+            return x*other.x + y*other.y + z*other.z;
+        }
+    };
+
+    // 计算两个骨骼向量之间的角度
+    float calculateAngle(const Vector3& v1, const Vector3& v2) {
+        float dot = v1.dot(v2);
+        float lengths = v1.length() * v2.length();
+        if (lengths < 1e-6f) return 0.0f;
+        float cosAngle = dot / lengths;
+        cosAngle = std::min(1.0f, std::max(-1.0f, cosAngle));
+        return std::acos(cosAngle);
+    }
+
+    // 计算相对位置（归一化到骨架大小）
+    Vector3 calculateRelativePosition(const CameraSpacePoint& joint, 
+                                   const CameraSpacePoint& spineMid, 
+                                   const CameraSpacePoint& spineBase) {
+        Vector3 spineVector = Vector3(spineMid) - Vector3(spineBase);
+        float spineLength = spineVector.length();
+        if (spineLength < 1e-6f) return Vector3(0, 0, 0);
+        Vector3 relativePos = Vector3(joint) - Vector3(spineBase);
+        return Vector3(
+            relativePos.x / spineLength,
+            relativePos.y / spineLength,
+            relativePos.z / spineLength
+        );
     }
 
     // 计算两帧之间的相似度
@@ -17,22 +120,107 @@ namespace kf {
             return 0.0f;
         }
 
-        float totalSimilarity = 0.0f;
+        /* 原始的基于欧氏距离的比较方法（注释保留）
+        float totalWeightedSimilarity = 0.0f;
+        float totalWeight = 0.0f;
         size_t jointCount = realFrame.joints.size();
 
         for (size_t i = 0; i < jointCount; ++i) {
             const auto& jointReal = realFrame.joints[i];
             const auto& jointTemplate = templateFrame.joints[i];
 
-            // 计算关节位置的距离
-            float distance = calculateJointDistance(jointReal.position, jointTemplate.position);
-            
-            // 将距离转换为相似度（使用高斯核）
-            float similarity = std::exp(-distance * distance / 0.5f);
-            totalSimilarity += similarity;
+            // 获取关节权重，如果没有定义则使用默认权重1.0
+            float weight = 1.0f;
+            auto it = jointWeights.find(jointReal.type);
+            if (it != jointWeights.end()) {
+                weight = it->second;
+            }
+
+            // 只有当两个关节都被追踪时才计算相似度
+            if (jointReal.trackingState == TrackingState_Tracked && 
+                jointTemplate.trackingState == TrackingState_Tracked) {
+                float distance = calculateJointDistance(jointReal.position, jointTemplate.position);
+                float similarity = std::exp(-distance * distance / 0.5f);
+                totalWeightedSimilarity += similarity * weight;
+                totalWeight += weight;
+            }
+        }
+        */
+
+        float totalWeightedSimilarity = 0.0f;
+        float totalWeight = 0.0f;
+
+        // 1. 计算角度相似度
+        for (const auto& bone : boneConnections) {
+            const auto& joint1Real = realFrame.joints[bone.first];
+            const auto& joint2Real = realFrame.joints[bone.second];
+            const auto& joint1Template = templateFrame.joints[bone.first];
+            const auto& joint2Template = templateFrame.joints[bone.second];
+
+            if (joint1Real.trackingState == TrackingState_Tracked && 
+                joint2Real.trackingState == TrackingState_Tracked &&
+                joint1Template.trackingState == TrackingState_Tracked && 
+                joint2Template.trackingState == TrackingState_Tracked) {
+                
+                Vector3 boneVectorReal = Vector3(joint2Real.position) - Vector3(joint1Real.position);
+                Vector3 boneVectorTemplate = Vector3(joint2Template.position) - Vector3(joint1Template.position);
+                float angle = calculateAngle(boneVectorReal, boneVectorTemplate);
+                float angleSimilarity = std::exp(-angle * angle / 1.0f);
+
+                float weight = 1.0f;
+                auto it = jointWeights.find(bone.second);
+                if (it != jointWeights.end()) {
+                    weight = it->second;
+                }
+
+                totalWeightedSimilarity += angleSimilarity * weight;
+                totalWeight += weight;
+            }
         }
 
-        return totalSimilarity / jointCount;
+        // 2. 计算相对位置相似度
+        const auto& spineBaseReal = realFrame.joints[JointType_SpineBase];
+        const auto& spineMidReal = realFrame.joints[JointType_SpineMid];
+        const auto& spineBaseTemplate = templateFrame.joints[JointType_SpineBase];
+        const auto& spineMidTemplate = templateFrame.joints[JointType_SpineMid];
+
+        if (spineBaseReal.trackingState == TrackingState_Tracked && 
+            spineMidReal.trackingState == TrackingState_Tracked &&
+            spineBaseTemplate.trackingState == TrackingState_Tracked && 
+            spineMidTemplate.trackingState == TrackingState_Tracked) {
+            
+            for (size_t i = 0; i < realFrame.joints.size(); ++i) {
+                const auto& jointReal = realFrame.joints[i];
+                const auto& jointTemplate = templateFrame.joints[i];
+
+                if (jointReal.trackingState == TrackingState_Tracked && 
+                    jointTemplate.trackingState == TrackingState_Tracked) {
+                    
+                    Vector3 relPosReal = calculateRelativePosition(
+                        jointReal.position, spineMidReal.position, spineBaseReal.position);
+                    Vector3 relPosTemplate = calculateRelativePosition(
+                        jointTemplate.position, spineMidTemplate.position, spineBaseTemplate.position);
+
+                    float posDistance = (relPosReal - relPosTemplate).length();
+                    float posSimilarity = std::exp(-posDistance * posDistance / 0.5f);
+
+                    float weight = 1.0f;
+                    auto it = jointWeights.find(static_cast<JointType>(i));
+                    if (it != jointWeights.end()) {
+                        weight = it->second;
+                    }
+
+                    totalWeightedSimilarity += posSimilarity * weight;
+                    totalWeight += weight;
+                }
+            }
+        }
+
+        if (totalWeight < 0.001f) {
+            return 0.0f;
+        }
+
+        return totalWeightedSimilarity / totalWeight;
     }
 
     // 使用 Eigen 加速的 DTW 算法

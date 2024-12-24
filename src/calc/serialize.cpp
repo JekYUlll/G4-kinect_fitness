@@ -73,9 +73,7 @@ namespace kf {
 
     // 构造函数，加载标准动作文件
     ActionTemplate::ActionTemplate(const std::string& filePath) {
-        frames = std::make_unique<std::vector<kf::FrameData>>();
-        
-        LOG_I("开始加载标准动作文件: {}", filePath);
+        _frames = std::make_unique<std::vector<kf::FrameData>>();
         
         // 确保目录存在
         if (!kf::ensureDirectoryExists()) {
@@ -85,7 +83,7 @@ namespace kf {
 
         // 获取完整路径
         std::string fullPath = kf::getStandardActionPath(filePath);
-        LOG_I("标准动作文件完整路径: {}", fullPath);
+        LOG_D("标准动作文件完整路径: {}", fullPath);
         
         if (!loadFromFile(fullPath)) {
             LOG_E("无法从文件加载标准动作: {}", fullPath);
@@ -96,25 +94,26 @@ namespace kf {
     // 加载标准动作数据
     bool ActionTemplate::loadFromFile(const std::string& filename) {
         try {
+            //std::string filepath = std::string(KF_DATA_DIR) + "\\" + filename;
             std::ifstream in(filename, std::ios::binary);
             if (!in) {
                 LOG_E("无法打开标准动作文件: {}", filename);
                 return false;
             }
 
-            frames->clear();
+            _frames->clear();
             size_t frameCount = 0;
             while (in.peek() != EOF) {
                 kf::FrameData frame;
                 frame.deserialize(in);
-                frames->push_back(frame);
+                _frames->push_back(frame);
                 frameCount++;
             }
 
             in.close();
             LOG_I("成功加载标准动作文件: {}", filename);
-            LOG_I("总共加载帧数: {}", frameCount);
-            LOG_I("第一帧关节数: {}", frames->empty() ? 0 : frames->front().joints.size());
+            LOG_D("总共加载帧数: {}", frameCount);
+            LOG_D("第一帧关节数: {}", _frames->empty() ? 0 : _frames->front().joints.size());
 
             return true;
         }
@@ -130,8 +129,8 @@ namespace kf {
 
     // 把标准动作打印到日志
     void ActionTemplate::PrintData() const {
-        for (size_t i = 0; i < frames->size(); ++i) {
-            const auto& frame = (*frames)[i];
+        for (size_t i = 0; i < _frames->size(); ++i) {
+            const auto& frame = (*_frames)[i];
             LOG_D("Frame {} - Timestamp: {}", i, frame.timestamp);
             LOG_D("Number of joints: {}", frame.joints.size());
 

@@ -16,9 +16,9 @@
 
 #include "stdafx.h"
 #include "resource.h"
+
 #include "config.h"
 #include "ui/KFui.h"
-#include "samples/ImageRenderer.h"
 #include "calc/serialize.h"
 #include "calc/compare.h"
 
@@ -75,17 +75,14 @@ public:
 
     void ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nHeight);
 
-    // Getter 和 Setter for m_isRecording
     inline void SetRecording(bool isRecording) { m_isRecording = isRecording; }
     [[nodiscard]] inline bool IsRecording() const { return m_isRecording; }
 
-    // Getter 和 Setter for m_isCalcing
     inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
     [[nodiscard]] inline bool IsCalcing() const { return m_isCalcing; }
 
     [[nodiscard]] inline ID2D1HwndRenderTarget* GetRenderTarget() const { return m_pRenderTarget; }
 
-    // Getter 和 Setter for m_isPlayingTemplate
     [[nodiscard]] inline bool IsPlayingTemplate() const { return m_isPlayingTemplate; }
     inline void SetPlayingTemplate(bool isPlaying) { 
         m_isPlayingTemplate = isPlaying;

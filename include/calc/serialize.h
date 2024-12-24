@@ -45,34 +45,34 @@ bool LoadFrame(const std::string& filename, FrameData& frame);
 
 class ActionBuffer {
 private:
-    std::deque<FrameData> buffer; // 使用 std::deque 维护缓冲区
-    size_t maxFrames;               // 最大帧数
+    std::deque<FrameData> _buffer; // 使用 std::deque 维护缓冲区
+    size_t _maxFrames;               // 最大帧数
 
 public:
-    ActionBuffer(size_t maxFrames) : maxFrames(maxFrames) {}
+    ActionBuffer(size_t maxFrames) : _maxFrames(maxFrames) {}
 
     // 添加动作帧到缓冲区
     inline void addFrame(const FrameData& frame) {
-        if (buffer.size() >= maxFrames) {
-            buffer.pop_front(); // 超过最大帧数时丢弃最早的一帧
+        if (_buffer.size() >= _maxFrames) {
+            _buffer.pop_front(); // 超过最大帧数时丢弃最早的一帧
         }
-        buffer.push_back(frame);
+        _buffer.push_back(frame);
     }
 
     // 获取缓冲区中的所有帧
-    inline const std::deque<FrameData>& getFrames() const {
-        return buffer;
+    [[nodiscard]] inline const std::deque<FrameData>& getFrames() const {
+        return _buffer;
     }
 
     // 清空缓冲区
     inline void clear() {
-        buffer.clear();
+        _buffer.clear();
     }
 };
 
 class ActionTemplate {
 private:
-    std::unique_ptr<std::vector<kf::FrameData>> frames; // 使用堆存储标准动作帧
+    std::unique_ptr<std::vector<kf::FrameData>> _frames; // 使用堆存储标准动作帧
 
 public:
     // 构造函数，直接加载文件
@@ -86,17 +86,17 @@ public:
 
     // 获取标准动作的帧数据
     [[nodiscard]] inline const std::vector<kf::FrameData>& getFrames() const {
-        return *frames; // 解引用智能指针
+        return *_frames; // 解引用智能指针
     }
 
     // 获取帧数量
     [[nodiscard]] inline size_t getFrameCount() const {
-        return frames->size();
+        return _frames->size();
     }
 
     // 清空数据
     inline void clear() {
-        frames->clear();
+        _frames->clear();
     }
 };
 
