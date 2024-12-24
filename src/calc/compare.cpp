@@ -200,27 +200,36 @@ namespace kfc {
     }
 
     // 相似度后处理函数，使结果分布更加均匀
-    float postProcessSimilarity(float rawSimilarity, float sensitivity = 1.2f) {
+    float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
         // 如果原始相似度太低，直接返回更低的值
-        if (rawSimilarity < 0.2f) {
-            return rawSimilarity * 0.3f;  // 进一步降低很差的匹配
+        if (rawSimilarity < 0.4f) {
+            return rawSimilarity * 0.3f;  // 加强对低相似度的惩罚
         }
         
-        // 将相似度从[0.2,1]映射到[-3,3]的范围内
-        float x = (rawSimilarity - 0.6f) * 6.0f;
+        // 先进行非线性拉伸，增加区分度
+        float stretched = std::pow(rawSimilarity, 1.2f);  // 增加指数，加强惩罚
+        
+        // 将相似度映射到合适的范围
+        float x = (stretched - 0.6f) * 8.0f;
         
         // 使用sigmoid函数进行S型映射
         float processed = 1.0f / (1.0f + std::exp(-x * sensitivity));
         
-        // 将结果映射到[0.1,0.9]区间，保持合理的分布
-        processed = 0.1f + processed * 0.8f;
+        // 分段线性映射
+        if (processed < 0.4f) {
+            processed *= 0.4f;  // 加强低分段压缩
+        } else if (processed > 0.7f) {
+            processed = 0.7f + (processed - 0.7f) * 1.2f;  // 保持高分段拉伸
+        }
         
-        // 对结果进行指数变换，增加区分度
-        processed = std::pow(processed, 1.2f);
+        // 确保结果在[0.1,0.95]范围内，降低下限
+        processed = std::min(0.95f, std::max(0.1f, processed));
         
-        // 对高相似度进行额外的惩罚
-        if (processed > 0.75f) {
-            processed = 0.75f + (processed - 0.75f) * 0.4f;
+        // 最终调整，增加区分度
+        if (processed < 0.5f) {
+            processed = processed * 0.6f;  // 进一步压缩低分段
+        } else {
+            processed = 0.3f + processed * 0.65f;  // 适度调整高分段
         }
         
         LOG_D("Raw similarity: {:.2f}%, Processed: {:.2f}%", 
