@@ -63,7 +63,16 @@ namespace kfc {
         {JointType_WristLeft, JointType_HandLeft}
     };
 
-    // 原始的欧氏距离计算方法（保留作为参考）
+    // 内部工具函数
+    static const JointData* findJoint(const std::vector<JointData>& joints, JointType type) {
+        for (const auto& joint : joints) {
+            if (joint.type == type) {
+                return &joint;
+            }
+        }
+        return nullptr;
+    }
+
     static float calculateJointDistance(const CameraSpacePoint& a, const CameraSpacePoint& b) {
         float dx = a.X - b.X;
         float dy = a.Y - b.Y;
@@ -71,15 +80,15 @@ namespace kfc {
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // 使用 Eigen 优化向量计算
+    // 基础工具函数实现
     using Vector3d = Eigen::Vector3f;
 
-    static Vector3d toEigenVector(const CameraSpacePoint& p) {
+    Vector3d toEigenVector(const CameraSpacePoint& p) {
         return Vector3d(p.X, p.Y, p.Z);
     }
 
     // 计算归一化的骨骼向量
-    static Vector3d getNormalizedBoneVector(const CameraSpacePoint& joint1, 
+    Vector3d getNormalizedBoneVector(const CameraSpacePoint& joint1, 
                                           const CameraSpacePoint& joint2) {
         Vector3d boneVector = toEigenVector(joint2) - toEigenVector(joint1);
         float length = boneVector.norm();
@@ -92,14 +101,79 @@ namespace kfc {
         return std::acos(cosAngle);
     }
 
-    // 计算角度相似度，使用可配置的高斯核带宽
     float calculateAngleSimilarity(float angle, float sigma = 0.8f) {
         return std::exp(-angle * angle / (2.0f * sigma * sigma));
     }
 
+    // 速度相关函数实现
+    float calculateJointSpeed(const JointData& current, const JointData& prev, float timeInterval) {
+        float dx = current.position.X - prev.position.X;
+        float dy = current.position.Y - prev.position.Y;
+        float dz = current.position.Z - prev.position.Z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz) / timeInterval;
+    }
+
+    float calculateSpeedPenalty(float speedRatio) {
+        const auto& config = Config::getInstance();
+
+        if (speedRatio < config.minSpeedRatio) {
+            // 速度太慢，使用平滑的惩罚函数
+            float factor = (speedRatio - config.minSpeedRatio) / config.minSpeedRatio;
+            return std::max(config.minSpeedPenalty, 1.0f + factor);
+        }
+        else if (speedRatio > config.maxSpeedRatio) {
+            // 速度太快，使用平滑的惩罚函数
+            float factor = (speedRatio - config.maxSpeedRatio) / config.maxSpeedRatio;
+            return std::max(config.minSpeedPenalty, 1.0f - factor);
+        }
+
+        return 1.0f;  // 速度在合理范围内，不惩罚
+    }
+
+    static float calculateSpeedRatio(const FrameData& realFrame, const FrameData& templateFrame) {
+        // 计算关键关节的平均速度
+        const JointType targetJoints[] = {
+            JointType_ElbowRight, JointType_ElbowLeft,
+            JointType_WristRight, JointType_WristLeft
+        };
+
+        float realSpeed = 0.0f;
+        float templateSpeed = 0.0f;
+        int validCount = 0;
+
+        for (JointType type : targetJoints) {
+            const JointData* realJoint = findJoint(realFrame.joints, type);
+            const JointData* templateJoint = findJoint(templateFrame.joints, type);
+
+            if (realJoint && templateJoint &&
+                realJoint->trackingState == TrackingState_Tracked &&
+                templateJoint->trackingState == TrackingState_Tracked) {
+                realSpeed += std::sqrt(
+                    realJoint->position.X * realJoint->position.X +
+                    realJoint->position.Y * realJoint->position.Y +
+                    realJoint->position.Z * realJoint->position.Z
+                );
+                templateSpeed += std::sqrt(
+                    templateJoint->position.X * templateJoint->position.X +
+                    templateJoint->position.Y * templateJoint->position.Y +
+                    templateJoint->position.Z * templateJoint->position.Z
+                );
+                validCount++;
+            }
+        }
+
+        if (validCount == 0 || templateSpeed < 0.001f) {
+            return 1.0f;  // 无法计算速度比率时返回1
+        }
+
+        return realSpeed / (templateSpeed * validCount);
+    }
+
+    // 位置计算相关函数实现
     Vector3d calculateRelativePosition(const CameraSpacePoint& joint, 
                                     const CameraSpacePoint& spineMid, 
                                     const CameraSpacePoint& spineBase) {
+        // 计算参考骨骼的方向向量
         Vector3d spineVector = toEigenVector(spineMid) - toEigenVector(spineBase);
         float spineLength = spineVector.norm();
         if (spineLength < 1e-6f) return Vector3d::Zero();
@@ -108,7 +182,7 @@ namespace kfc {
         return relativePos / spineLength;  // 使用脊柱长度归一化
     }
 
-    // 计算两帧之间的相似度
+    // 相似度计算核心函数实现
     float compareFrames(const FrameData& realFrame, const FrameData& templateFrame) {
         if (realFrame.joints.size() != templateFrame.joints.size()) {
             return 0.0f;
@@ -199,10 +273,19 @@ namespace kfc {
             return 0.0f;
         }
 
-        return totalWeightedSimilarity / totalWeight;
+        float similarity = totalWeightedSimilarity / totalWeight;
+        
+        // 计算速度惩罚
+        float speedRatio = calculateSpeedRatio(realFrame, templateFrame);
+        float speedPenalty = calculateSpeedPenalty(speedRatio);
+        
+        // 应用速度惩罚
+        const auto& config = Config::getInstance();
+        similarity = similarity * (1.0f - config.speedWeight) + speedPenalty * config.speedWeight;
+        
+        return similarity;
     }
 
-    // 相似度后处理函数，使结果分布更加均匀
     float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
         static float lastProcessed = 0.0f;
         
@@ -247,46 +330,11 @@ namespace kfc {
         return smoothed;
     }
 
-    // 计算关节的速度
-    float calculateJointSpeed(const JointData& current, const JointData& prev, float timeInterval) {
-        float dx = current.position.X - prev.position.X;
-        float dy = current.position.Y - prev.position.Y;
-        float dz = current.position.Z - prev.position.Z;
-        return std::sqrt(dx*dx + dy*dy + dz*dz) / timeInterval;
-    }
-
-    // 计算速度惩罚系数
-    float calculateSpeedPenalty(float speedRatio) {
-        const Config& config = Config::getInstance();
-        
-        if (speedRatio < config.minSpeedRatio) {
-            // 速度太慢，使用平滑的惩罚函数
-            float factor = (speedRatio - config.minSpeedRatio) / config.minSpeedRatio;
-            return std::max(config.minSpeedPenalty, 1.0f + factor);
-        } else if (speedRatio > config.maxSpeedRatio) {
-            // 速度太快，使用平滑的惩罚函数
-            float factor = (speedRatio - config.maxSpeedRatio) / config.maxSpeedRatio;
-            return std::max(config.minSpeedPenalty, 1.0f - factor);
-        }
-        
-        return 1.0f;  // 速度在合理范围内，不惩罚
-    }
-
-    // 在关节数组中查找指定类型的关节
-    const JointData* findJoint(const std::vector<JointData>& joints, JointType type) {
-        for (const auto& joint : joints) {
-            if (joint.type == type) {
-                return &joint;
-            }
-        }
-        return nullptr;
-    }
-
-    // 使用 Eigen 加速的 DTW 算法
-    float computeDTW(const std::vector<FrameData>& realFrames, 
+    // DTW相关函数实现
+    static float computeDTW(const std::vector<FrameData>& realFrames,
                     const std::vector<FrameData>& templateFrames, 
                     size_t bandWidth = 0) {
-        const Config& config = Config::getInstance();
+        const auto& config = Config::getInstance();
         const size_t M = realFrames.size();
         const size_t N = templateFrames.size();
         
@@ -441,7 +489,7 @@ namespace kfc {
         return postProcessSimilarity(weightedSimilarity);
     }
 
-    // 比较实时动作缓冲区与标准动作
+    // 动作比较相关函数实现
     float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate) {
         const auto& realDeque = buffer.getFrames();
         const auto& templateFrames = actionTemplate.getFrames();
@@ -457,7 +505,6 @@ namespace kfc {
         return similarity;
     }
 
-    // 异步动作比较
     std::future<float> compareActionAsync(const ActionBuffer& buffer) {
         return std::async(std::launch::async, [&]() {
             std::lock_guard<std::mutex> lock(templateMutex);
@@ -465,4 +512,4 @@ namespace kfc {
         });
     }
 
-}
+} // namespace kfc

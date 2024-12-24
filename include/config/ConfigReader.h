@@ -8,11 +8,21 @@
 #include <sstream>
 #include <map>
 #include <algorithm>
+#include <cstdint>
 
 #include "calc/serialize.h"
 #include "KFcommon.h"
 
 namespace kfc {
+
+// 编译时字符串哈希
+constexpr uint32_t hash_str(const char* str, size_t n) {
+    return n == 0 ? 5381 : (hash_str(str, n-1) * 33) ^ str[n-1];
+}
+
+constexpr uint32_t operator"" _hash(const char* str, size_t n) {
+    return hash_str(str, n);
+}
 
 struct Config {
     // 基础配置
@@ -21,8 +31,14 @@ struct Config {
     std::string standardActionPath; // 标准动作文件路径
     int windowWidth;               // 窗口宽度
     int windowHeight;              // 窗口高度
-    int frameRate;                 // 帧率
-    INT64 recordInterval;          // 记录间隔(微秒)
+    
+    // 帧率配置
+    int displayFPS;                // 画面显示帧率
+    int recordFPS;                 // 动作录制帧率
+    int compareFPS;                // 相似度计算帧率
+    
+    // 动作缓冲区配置
+    int actionBufferSize;          // 动作缓冲区大小（帧数）
     
     // 相似度计算参数
     float speedWeight;             // 速度惩罚的权重
@@ -37,12 +53,19 @@ struct Config {
         return instance;
     }
 
+    // 获取各种间隔时间（微秒）
+    [[nodiscard]] inline INT64 getDisplayInterval() const { return static_cast<INT64>(1000000.0 / displayFPS); }
+    [[nodiscard]] inline INT64 getRecordInterval() const { return static_cast<INT64>(1000000.0 / recordFPS); }
+    [[nodiscard]] inline INT64 getCompareInterval() const { return static_cast<INT64>(1000000.0 / compareFPS); }
+
 private:
     Config() : 
         windowWidth(800),
         windowHeight(600),
-        frameRate(30),
-        recordInterval(33 * 10000),
+        displayFPS(60),
+        recordFPS(30),
+        compareFPS(10),
+        actionBufferSize(120),     // 默认120帧
         speedWeight(0.3f),
         minSpeedRatio(0.6f),
         maxSpeedRatio(1.4f),
@@ -56,7 +79,7 @@ private:
 
 bool ReadConfig(const std::string& filename, std::map<std::string, std::string>& config);
 
-bool InitConfig();
+bool InitConfig(const std::string& configPath);
 
 } // namespace kfc
 

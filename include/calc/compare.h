@@ -6,56 +6,32 @@
 #include <mutex>
 #include <cmath> 
 #include <limits>
+#include <Eigen/Dense>
 #include "serialize.h"
-
-#include <Eigen/Dense> // 用于回归分析
 
 namespace kfc {
 
-#if defined(USE_LINEAR_REGRESSION)
+// 基础类型定义
+using Vector3d = Eigen::Vector3f;
 
-    // 计算一组位置数据的线性回归误差
-    float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
-    // 比较两个动作帧的相似度
-    float compareFrames(const kf::FrameData& realFrame, const kf::FrameData& templateFrame);
-    // 比较实时动作缓冲区与标准动作
-    float compareActionBuffer(const kf::ActionBuffer& buffer, const ActionTemplate& actionTemplate);
-    // 异步比较动作
-    std::future<float> compareActionAsync(const kf::ActionBuffer& buffer);
+// 基础工具函数声明
+Vector3d toEigenVector(const CameraSpacePoint& p);
+Vector3d getNormalizedBoneVector(const CameraSpacePoint& joint1, const CameraSpacePoint& joint2);
+float calculateAngle(const Vector3d& v1, const Vector3d& v2);
+float calculateAngleSimilarity(float angle, float sigma);
 
-#elif defined(USE_DTW)
-    // 将输入修改为更通用的 单维向量输入，保留线性回归误差计算的逻辑。
-    // float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
+// 速度相关函数声明
+float calculateJointSpeed(const JointData& current, const JointData& prev, float timeInterval);
+float calculateSpeedPenalty(float speedRatio);
 
-    // 比较两个动作帧
-    float compareFrames(const FrameData& realFrame, const FrameData& templateFrame);
+// 相似度计算核心函数声明
+float compareFrames(const FrameData& realFrame, const FrameData& templateFrame);
+float postProcessSimilarity(float rawSimilarity, float sensitivity);
 
-    // // 使用 Eigen 加速的 DTW 算法
-    // 将缓冲区与模板动作中的每一帧调用 compareFrames 进行帧距离计算，并使用动态时间规整（DTW）算法求解最小代价路径。
-    //float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames, size_t bandWidth = 0);
+// 动作比较相关函数声明
+float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate);
+std::future<float> compareActionAsync(const ActionBuffer& buffer);
 
-    // 比较动作缓冲区与标准模板
-    float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate);
-
-    // 异步动作比较
-    std::future<float> compareActionAsync(const ActionBuffer& buffer);
-
-#else
-
-    // 计算两个关节数据的距离
-    float calculateJointDistance(const kf::JointData& a, const kf::JointData& b);
-
-    // 比较两个动作帧的相似度
-    float compareFrames(const kf::FrameData& realFrame, const kf::FrameData& templateFrame);
-
-    // 比较实时动作缓冲区与标准动作
-    float compareActionBuffer(const kf::ActionBuffer& buffer, const ActionTemplate& actionTemplate);
-
-    // 异步比较动作
-    std::future<float> compareActionAsync(const kf::ActionBuffer& buffer);
-
-#endif
-
-}
+} // namespace kfc
 
 #endif // !COMPARE_HPP

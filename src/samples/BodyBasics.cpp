@@ -586,7 +586,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
     int width = rct.right;
     int height = rct.bottom;
 
-    static kfc::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE);  // 动作缓冲区
+    static kfc::ActionBuffer actionBuffer(kfc::Config::getInstance().actionBufferSize);  // 缓冲区
     static std::future<float> similarityFuture;                // 异步计算相似度任务
     static std::vector<std::future<void>> saveFutures;         // 保存帧的future列表
     static INT64 lastRecordedTime = 0;                        // 上次记录时间戳
@@ -731,7 +731,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                     // 序列化当前帧（异步）
                     if (m_isRecording && !m_recordFilePath.empty() &&
-                        (nTime - lastRecordedTime >= kfc::Config::getInstance().recordInterval)) {
+                        (nTime - lastRecordedTime >= kfc::Config::getInstance().getRecordInterval() * 10)) {
                         lastRecordedTime = nTime;  // 更新上次记录时间
 
                         // 限制并发保存任务的数量
@@ -775,7 +775,7 @@ void Application::PlayActionTemplate(INT64 nTime) {
 
     // 使用recordInterval来控制播放速度
     INT64 elapsedTime = nTime - m_playbackStartTime;
-    size_t frameIndex = (elapsedTime / kfc::Config::getInstance().recordInterval) % actionTemplate.getFrameCount();
+    size_t frameIndex = (elapsedTime / kfc::Config::getInstance().getRecordInterval()) % actionTemplate.getFrameCount();
 
     // 如果当前帧发生变化，更新当前帧并绘制
     if (frameIndex != m_currentFrameIndex) {

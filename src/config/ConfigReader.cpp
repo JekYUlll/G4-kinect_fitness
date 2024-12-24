@@ -59,47 +59,60 @@ namespace kfc {
     return true;
 }
 
-bool InitConfig() {
+bool InitConfig(const std::string& configPath) {
+    auto& config = Config::getInstance();
     std::map<std::string, std::string> configMap;
-    Config& config = Config::getInstance();
     
-    // 设置默认值
-    config.dataDir = KF_DATA_DIR;
-    config.configFile = KF_CONFIG_FILE;
-    
-    if (!ReadConfig(config.configFile, configMap)) {
-        LOG_W("Using default configuration");
+    if (!ReadConfig(configPath, configMap)) {
+        LOG_E("Failed to read config file");
         return false;
     }
     
-    // 读取配置值
-    for (const auto& pair : configMap) {
-        const auto& key = pair.first;
-        const auto& value = pair.second;
-        
+    for (const auto& [key, value] : configMap) {
         try {
-            if (key == "window.width") {
+            switch (hash_str(key.c_str(), key.length())) {
+            case "window.width"_hash:
                 config.windowWidth = std::stoi(value);
-            } else if (key == "window.height") {
+                break;
+            case "window.height"_hash:
                 config.windowHeight = std::stoi(value);
-            } else if (key == "window.frameRate") {
-                config.frameRate = std::stoi(value);
-            } else if (key == "record.interval") {
-                config.recordInterval = static_cast<INT64>(std::stoll(value)) * 10000; // 转换为微秒
-            } else if (key == "action.standardPath") {
+                break;
+            case "fps.display"_hash:
+                config.displayFPS = std::stoi(value);
+                break;
+            case "fps.record"_hash:
+                config.recordFPS = std::stoi(value);
+                break;
+            case "fps.compare"_hash:
+                config.compareFPS = std::stoi(value);
+                break;
+            case "action.standardPath"_hash:
                 config.standardActionPath = value;
-            } else if (key == "similarity.speedWeight") {
+                break;
+            case "action.bufferSize"_hash:
+                config.actionBufferSize = std::stoi(value);
+                break;
+            case "similarity.speedWeight"_hash:
                 config.speedWeight = std::stof(value);
-            } else if (key == "similarity.minSpeedRatio") {
+                break;
+            case "similarity.minSpeedRatio"_hash:
                 config.minSpeedRatio = std::stof(value);
-            } else if (key == "similarity.maxSpeedRatio") {
+                break;
+            case "similarity.maxSpeedRatio"_hash:
                 config.maxSpeedRatio = std::stof(value);
-            } else if (key == "similarity.minSpeedPenalty") {
+                break;
+            case "similarity.minSpeedPenalty"_hash:
                 config.minSpeedPenalty = std::stof(value);
-            } else if (key == "similarity.dtwBandwidthRatio") {
+                break;
+            case "similarity.dtwBandwidthRatio"_hash:
                 config.dtwBandwidthRatio = std::stof(value);
-            } else if (key == "similarity.threshold") {
+                break;
+            case "similarity.threshold"_hash:
                 config.similarityThreshold = std::stof(value);
+                break;
+            default:
+                LOG_W("Unknown config key: {}", key);
+                break;
             }
         } catch (const std::exception& e) {
             LOG_E("Error parsing config value for {}: {}", key, e.what());
@@ -109,8 +122,10 @@ bool InitConfig() {
     // 验证配置值的合法性
     config.windowWidth = std::max(640, std::min(1920, config.windowWidth));
     config.windowHeight = std::max(480, std::min(1080, config.windowHeight));
-    config.frameRate = std::max(15, std::min(60, config.frameRate));
-    config.recordInterval = std::max<INT64>(100 * 10000, std::min<INT64>(1000 * 10000, config.recordInterval));
+    config.displayFPS = std::max(30, std::min(120, config.displayFPS));
+    config.recordFPS = std::max(10, std::min(60, config.recordFPS));
+    config.compareFPS = std::max(1, std::min(30, config.compareFPS));
+    config.actionBufferSize = std::max(20, std::min(300, config.actionBufferSize));
     
     config.speedWeight = std::max(0.0f, std::min(1.0f, config.speedWeight));
     config.minSpeedRatio = std::max(0.1f, config.minSpeedRatio);
@@ -120,19 +135,19 @@ bool InitConfig() {
     config.similarityThreshold = std::max(0.0f, std::min(1.0f, config.similarityThreshold));
     
     LOG_I("Configuration loaded:\n"
-          "  Window: {}x{} @{}fps\n"
-          "  Record interval: {}ms\n"
+          "  Window: {}x{}\n"
+          "  FPS: display={}, record={}, compare={}\n"
           "  Standard action: {}\n"
           "  Similarity: weight={:.2f}, speedRatio={:.2f}-{:.2f}, penalty={:.2f}, "
           "bandWidth={:.2f}, threshold={:.2f}",
-          config.windowWidth, config.windowHeight, config.frameRate,
-          config.recordInterval / 10000,
+          config.windowWidth, config.windowHeight,
+          config.displayFPS, config.recordFPS, config.compareFPS,
           config.standardActionPath,
           config.speedWeight, config.minSpeedRatio, config.maxSpeedRatio,
           config.minSpeedPenalty, config.dtwBandwidthRatio, config.similarityThreshold);
 
     try {
-        g_actionTemplate = std::make_unique<ActionTemplate>(Config::getInstance().standardActionPath);
+        g_actionTemplate = std::make_unique<ActionTemplate>(config.standardActionPath);
     }
     catch (const std::exception& e) {
         LOG_E("Load standard action: {}", e.what());
