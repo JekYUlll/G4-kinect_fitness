@@ -244,6 +244,43 @@ namespace kfc {
         return smoothed;
     }
 
+    // 计算关节的速度
+    float calculateJointSpeed(const JointData& current, const JointData& prev, float timeInterval) {
+        float dx = current.position.X - prev.position.X;
+        float dy = current.position.Y - prev.position.Y;
+        float dz = current.position.Z - prev.position.Z;
+        return std::sqrt(dx*dx + dy*dy + dz*dz) / timeInterval;
+    }
+
+    // 计算速度惩罚系数
+    float calculateSpeedPenalty(float speedRatio) {
+        // 允许的速度比率范围
+        const float minRatio = 0.6f;
+        const float maxRatio = 1.4f;
+        
+        if (speedRatio < minRatio) {
+            // 速度太慢，使用平滑的惩罚函数
+            float factor = (speedRatio - minRatio) / minRatio;
+            return std::max(0.5f, 1.0f + factor);
+        } else if (speedRatio > maxRatio) {
+            // 速度太快，使用平滑的惩罚函数
+            float factor = (speedRatio - maxRatio) / maxRatio;
+            return std::max(0.5f, 1.0f - factor);
+        }
+        
+        return 1.0f;  // 速度在合理范围内，不惩罚
+    }
+
+    // 在关节数组中查找指定类型的关节
+    const JointData* findJoint(const std::vector<JointData>& joints, JointType type) {
+        for (const auto& joint : joints) {
+            if (joint.type == type) {
+                return &joint;
+            }
+        }
+        return nullptr;
+    }
+
     // 使用 Eigen 加速的 DTW 算法
     float computeDTW(const std::vector<FrameData>& realFrames, 
                     const std::vector<FrameData>& templateFrames, 
@@ -254,7 +291,61 @@ namespace kfc {
         if (M == 0 || N == 0) {
             return 0.0f;
         }
-        
+
+        // 计算模板序列的平均速度
+        float templateTotalSpeed = 0.0f;
+        int speedCount = 0;
+        const JointType targetJoints[] = {
+            JointType_ElbowRight, JointType_ElbowLeft,
+            JointType_WristRight, JointType_WristLeft
+        };
+
+        for (size_t i = 1; i < N; ++i) {
+            const auto& curr = templateFrames[i];
+            const auto& prev = templateFrames[i-1];
+            float timeInterval = (curr.timestamp - prev.timestamp) / 10000000.0f;  // 转换为秒
+            
+            for (JointType type : targetJoints) {
+                const JointData* currJoint = findJoint(curr.joints, type);
+                const JointData* prevJoint = findJoint(prev.joints, type);
+                
+                if (currJoint && prevJoint && 
+                    currJoint->trackingState == TrackingState_Tracked && 
+                    prevJoint->trackingState == TrackingState_Tracked) {
+                    templateTotalSpeed += calculateJointSpeed(*currJoint, *prevJoint, timeInterval);
+                    speedCount++;
+                }
+            }
+        }
+        float templateAvgSpeed = speedCount > 0 ? templateTotalSpeed / speedCount : 0.0f;
+
+        // 计算实时序列的平均速度（使用滑动窗口）
+        const int windowSize = 5;  // 使用5帧的滑动窗口
+        float realTotalSpeed = 0.0f;
+        speedCount = 0;
+        for (size_t i = M - std::min(M, (size_t)windowSize); i < M && i > 0; ++i) {
+            const auto& curr = realFrames[i];
+            const auto& prev = realFrames[i-1];
+            float timeInterval = (curr.timestamp - prev.timestamp) / 10000000.0f;
+            
+            for (JointType type : targetJoints) {
+                const JointData* currJoint = findJoint(curr.joints, type);
+                const JointData* prevJoint = findJoint(prev.joints, type);
+                
+                if (currJoint && prevJoint && 
+                    currJoint->trackingState == TrackingState_Tracked && 
+                    prevJoint->trackingState == TrackingState_Tracked) {
+                    realTotalSpeed += calculateJointSpeed(*currJoint, *prevJoint, timeInterval);
+                    speedCount++;
+                }
+            }
+        }
+        float realAvgSpeed = speedCount > 0 ? realTotalSpeed / speedCount : 0.0f;
+
+        // 计算速度比率和惩罚系数
+        float speedRatio = templateAvgSpeed > 0.001f ? realAvgSpeed / templateAvgSpeed : 1.0f;
+        float speedPenalty = calculateSpeedPenalty(speedRatio);
+
         // 如果没有指定带宽，设置初始带宽为序列长度的30%
         if (bandWidth == 0) {
             bandWidth = std::max<size_t>(
@@ -337,14 +428,14 @@ namespace kfc {
                 return computeDTW(realFrames, templateFrames, bandWidth * 2);
             }
         }
-        
+
         float similarity = 1.0f / (1.0f + dtwDistance / std::max(M, N));
         
-        LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, raw similarity: {:.2f}%", 
-            dtwDistance, M, N, similarity * 100.0f);
+        LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, raw similarity: {:.2f}%, speed ratio: {:.2f}, penalty: {:.2f}", 
+            dtwDistance, M, N, similarity * 100.0f, speedRatio, speedPenalty);
             
-        // 应用后处理
-        return postProcessSimilarity(similarity);
+        // 应用速度惩罚和后处理
+        return postProcessSimilarity(similarity * speedPenalty);
     }
 
     // 比较实时动作缓冲区与标准动作
