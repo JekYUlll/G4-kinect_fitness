@@ -148,48 +148,62 @@ void Application::HandlePaint()
             }
 
             if (SUCCEEDED(hr) && m_pBrush) {
-                // 获取当前相似度值（使用平滑处理）
-                static float smoothedSimilarity = 0.0f;
-                float currentSimilarity = m_fCurrentSimilarity.load(std::memory_order_acquire);
+                // 获取当前相似度值
+                static float displayedSimilarity = 0.0f;  // 显示用的相似度
+                static float targetSimilarity = 0.0f;     // 目标相似度
+                static LARGE_INTEGER lastUpdateTime = {0}; // 上次更新时间
                 
-                // 使用指数移动平均进行平滑
-                const float smoothingFactor = 0.3f; // 平滑因子，可以根据需要调整
-                smoothedSimilarity = smoothedSimilarity * (1.0f - smoothingFactor) + 
-                                   currentSimilarity * smoothingFactor;
+                // 获取当前时间
+                LARGE_INTEGER currentTime;
+                QueryPerformanceCounter(&currentTime);
                 
-                // 只有当变化超过阈值时才更新显示
-                static float lastDisplayedSimilarity = 0.0f;
-                const float updateThreshold = 0.005f; // 0.5%的变化阈值
-                
-                if (std::abs(smoothedSimilarity - lastDisplayedSimilarity) > updateThreshold) {
-                    lastDisplayedSimilarity = smoothedSimilarity;
-                    
-                    // 绘制相似度文本
-                    WCHAR similarityText[64];
-                    swprintf_s(similarityText, L"Similarity: %.1f%%", smoothedSimilarity * 100.0f);
-                    
-                    // 创建半透明黑色背景
-                    ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
-                    hr = m_pRenderTarget->CreateSolidColorBrush(
-                        D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
-                        &pBackgroundBrush
-                    );
+                // 计算时间差（秒）
+                float deltaTime = static_cast<float>(currentTime.QuadPart - lastUpdateTime.QuadPart) / m_fFreq;
+                lastUpdateTime = currentTime;
 
-                    if (SUCCEEDED(hr) && pBackgroundBrush) {
-                        // 绘制相似度背景
-                        m_pRenderTarget->FillRectangle(
-                            D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
-                            pBackgroundBrush
-                        );
-                        // 绘制相似度文本
-                        m_pRenderTarget->DrawText(
-                            similarityText, wcslen(similarityText),
-                            pTextFormat,
-                            D2D1::RectF(10.0f, 50.0f, 300.0f, 90.0f),
-                            m_pBrush
-                        );
-                        SafeRelease(pBackgroundBrush);
-                    }
+                // 更新目标相似度
+                float currentSimilarity = m_fCurrentSimilarity.load(std::memory_order_acquire);
+                targetSimilarity = currentSimilarity;  // 直接更新目标值
+
+                // 平滑插值到目标值
+                const float transitionSpeed = 1.0f;  // 每秒最大变化速度（降低以使变化更平滑）
+                float maxChange = transitionSpeed * deltaTime;
+                float diff = targetSimilarity - displayedSimilarity;
+                
+                if (std::abs(diff) > maxChange) {
+                    // 限制变化速度
+                    displayedSimilarity += (diff > 0 ? maxChange : -maxChange);
+                } else {
+                    // 使用插值而不是直接赋值，使变化更平滑
+                    const float smoothFactor = 0.2f;  // 平滑因子
+                    displayedSimilarity = displayedSimilarity * (1.0f - smoothFactor) + targetSimilarity * smoothFactor;
+                }
+
+                // 绘制相似度文本
+                WCHAR similarityText[64];
+                swprintf_s(similarityText, L"Similarity: %.1f%%", displayedSimilarity * 100.0f);
+                
+                // 创建半透明黑色背景
+                ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
+                hr = m_pRenderTarget->CreateSolidColorBrush(
+                    D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
+                    &pBackgroundBrush
+                );
+
+                if (SUCCEEDED(hr) && pBackgroundBrush) {
+                    // 绘制相似度背景
+                    m_pRenderTarget->FillRectangle(
+                        D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
+                        pBackgroundBrush
+                    );
+                    // 绘制相似度文本
+                    m_pRenderTarget->DrawText(
+                        similarityText, wcslen(similarityText),
+                        pTextFormat,
+                        D2D1::RectF(10.0f, 50.0f, 300.0f, 90.0f),
+                        m_pBrush
+                    );
+                    SafeRelease(pBackgroundBrush);
                 }
             }
         }
@@ -798,12 +812,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                 // 如果有上一次的结果，先获取它
                                 if (similarityFuture.valid()) {
                                     float lastSimilarity = similarityFuture.get();
-                                    if (std::abs(lastSimilarity - m_fCurrentSimilarity.load()) > 0.01f) {
-                                        m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
-                                        // 只重绘相似度显示区域
-                                        RECT rcSimilarity = { 5, 45, 305, 85 };
-                                        InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rcSimilarity, FALSE);
-                                    }
+                                    m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
                                 }
 
                                 // 启动新的异步计算
