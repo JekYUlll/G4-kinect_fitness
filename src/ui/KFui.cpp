@@ -3,13 +3,13 @@
 
 namespace kfc {
 
-    // UI ¿Ø¼ş¾ä±ú
+    // UI æ§ä»¶å¥æŸ„
     HWND hStartButton = nullptr;
     HWND hRecordButton = nullptr;
     HWND hPrintButton = nullptr;
     HWND hPlayButton = nullptr;
 
-    // °´Å¥µã»÷ÊÂ¼ş´¦Àíº¯Êı
+    // æŒ‰é’®ç‚¹å‡»äº‹ä»¶å¤„ç†å‡½æ•°
     void OnStartButtonClick() {
         
     }
@@ -28,7 +28,7 @@ namespace kfc {
 
     }
 
-    // ´°¿Ú¹ı³Ìº¯Êı
+    // çª—å£è¿‡ç¨‹å‡½æ•°
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         Application* pApp = nullptr;
         pApp = reinterpret_cast<Application*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
@@ -43,67 +43,67 @@ namespace kfc {
         }
 
         case WM_CREATE: {
-            // ´´½¨¿ªÊ¼/ÔİÍ£°´Å¥
+            // åˆ›å»ºå¼€å§‹/æš‚åœæŒ‰é’®
             hStartButton = CreateWindow(
-                L"BUTTON",                          // ´°¿ÚÀàÃû
-                L"Start",                           // °´Å¥ÎÄ±¾
-                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // ÑùÊ½
-                10,                                 // x Î»ÖÃ
-                10,                                 // y Î»ÖÃ
-                100,                                // ¿í¶È
-                30,                                 // ¸ß¶È
-                hwnd,                               // ¸¸´°¿Ú
-                (HMENU)1,                          // ²Ëµ¥/¿Ø¼şID
-                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // ÊµÀı¾ä±ú
-                NULL                                // ¶îÍâ²ÎÊı
+                L"BUTTON",                          // çª—å£ç±»å
+                L"Start",                           // æŒ‰é’®æ–‡æœ¬
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // æ ·å¼
+                10,                                 // x ä½ç½®
+                10,                                 // y ä½ç½®
+                100,                                // å®½åº¦
+                30,                                 // é«˜åº¦
+                hwnd,                               // çˆ¶çª—å£
+                (HMENU)1,                          // èœå•/æ§ä»¶ID
+                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // å®ä¾‹å¥æŸ„
+                NULL                                // é¢å¤–å‚æ•°
             );
 
-            // ´´½¨Â¼ÖÆ°´Å¥
+            // åˆ›å»ºå½•åˆ¶æŒ‰é’®
             hRecordButton = CreateWindow(
-                L"BUTTON",                          // ´°¿ÚÀàÃû
-                L"Record",                          // °´Å¥ÎÄ±¾
-                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // ÑùÊ½
-                120,                                // x Î»ÖÃ
-                10,                                 // y Î»ÖÃ
-                100,                                // ¿í¶È
-                30,                                 // ¸ß¶È
-                hwnd,                               // ¸¸´°¿Ú
-                (HMENU)2,                          // ²Ëµ¥/¿Ø¼şID
-                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // ÊµÀı¾ä±ú
-                NULL                                // ¶îÍâ²ÎÊı
+                L"BUTTON",                          // çª—å£ç±»å
+                L"Record",                          // æŒ‰é’®æ–‡æœ¬
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // æ ·å¼
+                120,                                // x ä½ç½®
+                10,                                 // y ä½ç½®
+                100,                                // å®½åº¦
+                30,                                 // é«˜åº¦
+                hwnd,                               // çˆ¶çª—å£
+                (HMENU)2,                          // èœå•/æ§ä»¶ID
+                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // å®ä¾‹å¥æŸ„
+                NULL                                // é¢å¤–å‚æ•°
             );
 
-            // ´´½¨´òÓ¡°´Å¥
+            // åˆ›å»ºæ‰“å°æŒ‰é’®
             hPrintButton = CreateWindow(
-                L"BUTTON",                          // ´°¿ÚÀàÃû
-                L"Print",                          // °´Å¥ÎÄ±¾
-                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // ÑùÊ½
-                230,                                // x Î»ÖÃ
-                10,                                 // y Î»ÖÃ
-                100,                                // ¿í¶È
-                30,                                 // ¸ß¶È
-                hwnd,                               // ¸¸´°¿Ú
-                (HMENU)3,                          // ²Ëµ¥/¿Ø¼şID
-                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // ÊµÀı¾ä±ú
-                NULL                                // ¶îÍâ²ÎÊı
+                L"BUTTON",                          // çª—å£ç±»å
+                L"Print",                          // æŒ‰é’®æ–‡æœ¬
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // æ ·å¼
+                230,                                // x ä½ç½®
+                10,                                 // y ä½ç½®
+                100,                                // å®½åº¦
+                30,                                 // é«˜åº¦
+                hwnd,                               // çˆ¶çª—å£
+                (HMENU)3,                          // èœå•/æ§ä»¶ID
+                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // å®ä¾‹å¥æŸ„
+                NULL                                // é¢å¤–å‚æ•°
             );
 
-            // ´´½¨²¥·Å°´Å¥
+            // åˆ›å»ºæ’­æ”¾æŒ‰é’®
             hPlayButton = CreateWindow(
-                L"BUTTON",                          // ´°¿ÚÀàÃû
-                L"Play",                           // ³õÊ¼ÎÄ±¾Îª"Play"
-                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // ÑùÊ½
-                340,                                // x Î»ÖÃ
-                10,                                 // y Î»ÖÃ
-                100,                                // ¿í¶È
-                30,                                 // ¸ß¶È
-                hwnd,                               // ¸¸´°¿Ú
-                (HMENU)4,                          // ²Ëµ¥/¿Ø¼şID
-                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // ÊµÀı¾ä±ú
-                NULL                                // ¶îÍâ²ÎÊı
+                L"BUTTON",                          // çª—å£ç±»å
+                L"Play",                           // åˆå§‹æ–‡æœ¬ä¸º"Play"
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // æ ·å¼
+                340,                                // x ä½ç½®
+                10,                                 // y ä½ç½®
+                100,                                // å®½åº¦
+                30,                                 // é«˜åº¦
+                hwnd,                               // çˆ¶çª—å£
+                (HMENU)4,                          // èœå•/æ§ä»¶ID
+                (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),  // å®ä¾‹å¥æŸ„
+                NULL                                // é¢å¤–å‚æ•°
             );
 
-            // ÉèÖÃ°´Å¥×ÖÌå
+            // è®¾ç½®æŒ‰é’®å­—ä½“
             HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
             SendMessage(hStartButton, WM_SETFONT, (WPARAM)hFont, TRUE);
             SendMessage(hRecordButton, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -115,7 +115,7 @@ namespace kfc {
         case WM_PAINT: {
             if (pApp) {
                 pApp->HandlePaint();
-                ValidateRect(hwnd, NULL);  // Ö»ÓĞÔÚHandlePaintÍê³Éºó²ÅÑéÖ¤ÇøÓò
+                ValidateRect(hwnd, NULL);  // åªæœ‰åœ¨HandlePaintå®Œæˆåæ‰éªŒè¯åŒºåŸŸ
                 return 0;
             }
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -123,21 +123,21 @@ namespace kfc {
 
         case WM_ERASEBKGND:
             if (pApp) {
-                return TRUE;  // ÎÒÃÇ×Ô¼º´¦Àí²Á³ı±³¾°
+                return TRUE;  // æˆ‘ä»¬è‡ªå·±å¤„ç†æ“¦é™¤èƒŒæ™¯
             }
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
         case WM_SIZE: {
             if (pApp) {
-                // »ñÈ¡ĞÂµÄ¿í¶ÈºÍ¸ß¶È
+                // è·å–æ–°çš„å®½åº¦å’Œé«˜åº¦
                 UINT width = LOWORD(lParam);
                 UINT height = HIWORD(lParam);
-                // µ÷ÕûäÖÈ¾Ä¿±ê´óĞ¡
+                // è°ƒæ•´æ¸²æŸ“ç›®æ ‡å¤§å°
                 if (pApp->GetRenderTarget()) {
                     D2D1_SIZE_U size = D2D1::SizeU(width, height);
                     pApp->GetRenderTarget()->Resize(&size);
                 }
-                // Á¢¼´ÖØ»æ´°¿Ú
+                // ç«‹å³é‡ç»˜çª—å£
                 InvalidateRect(hwnd, NULL, FALSE);
             }
             return 0;
@@ -145,7 +145,7 @@ namespace kfc {
 
         case WM_COMMAND: {
             switch (LOWORD(wParam)) {
-            case 1:  // Start °´Å¥
+            case 1:  // Start æŒ‰é’®
                 OnStartButtonClick();
                 if (!pApp->IsCalcing()) {
                     pApp->SetCalcing(true);
@@ -159,10 +159,10 @@ namespace kfc {
                 }
                 break;
 
-            case 2:  // Record °´Å¥
+            case 2:  // Record æŒ‰é’®
                 OnRecordButtonClick();
                 if (!pApp->IsRecording()) {
-                    if (!pApp->IsCalcing()) { // ±ØĞëÔÚ¼ÆËã×´Ì¬ÏÂ²ÅÄÜÂ¼ÖÆ
+                    if (!pApp->IsCalcing()) { // å¿…é¡»åœ¨è®¡ç®—çŠ¶æ€ä¸‹æ‰èƒ½å½•åˆ¶
                         LOG_E("must start Calcing before Recording");
                         break;
                     }
@@ -176,15 +176,15 @@ namespace kfc {
                 }
                 break;
 
-            case 3: // Print °´Å¥
+            case 3: // Print æŒ‰é’®
                 OnPrintButtonClick();
                 break;
 
-            case 4: // Play °´Å¥
+            case 4: // Play æŒ‰é’®
                 if (!pApp->IsPlayingTemplate()) {
                     pApp->SetPlayingTemplate(true);
                     SetWindowText(hPlayButton, L"Stop");
-                    pApp->SetPlaybackStartTime(0); // ÖØÖÃ²¥·ÅÆğµã
+                    pApp->SetPlaybackStartTime(0); // é‡ç½®æ’­æ”¾èµ·ç‚¹
                     LOG_I("Started playing standard action template");
                 }
                 else {

@@ -18,16 +18,16 @@ namespace kfc {
 	extern int window_width;
 	extern int window_height;
 
-	// ±£´æ¼ä¸ô -- ·ÀÖ¹²ÉÑùÂÊÌ«¸ßµÄ¿¨¶Ù
+	// ä¿å­˜é—´éš” -- é˜²æ­¢é‡‡æ ·ç‡å¤ªé«˜çš„å¡é¡¿
 	extern INT64 recordInterval;
 
-	// È·±£±ØÒªµÄÄ¿Â¼´æÔÚ
+	// ç¡®ä¿å¿…è¦çš„ç›®å½•å­˜åœ¨
 	bool ensureDirectoryExists();
 
-	// »ñÈ¡±ê×¼¶¯×÷ÎÄ¼şµÄÍêÕûÂ·¾¶
+	// è·å–æ ‡å‡†åŠ¨ä½œæ–‡ä»¶çš„å®Œæ•´è·¯å¾„
 	std::string getStandardActionPath(const std::string& filename);
 
-	// »ñÈ¡ĞÂÂ¼ÖÆÎÄ¼şµÄÂ·¾¶
+	// è·å–æ–°å½•åˆ¶æ–‡ä»¶çš„è·¯å¾„
 	std::string generateRecordingPath();
 
 }

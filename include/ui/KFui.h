@@ -10,15 +10,15 @@
 
 namespace kfc {
 
-    // UI 控件句柄
+    // UI 鎺т欢鍙ユ焺
     extern HWND hStartButton;
     extern HWND hRecordButton;
 
-    // 按钮事件处理函数
+    // 鎸夐挳浜嬩欢澶勭悊鍑芥暟
     void OnStartButtonClick();
     void OnRecordButtonClick();
 
-    // 窗口过程函数
+    // 绐楀彛杩囩▼鍑芥暟
     LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 }
 

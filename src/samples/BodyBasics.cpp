@@ -74,7 +74,7 @@ Application::Application() :
         }
     }*/
 
-    // ´´½¨ÑÕÉ«»º³åÇø
+    // åˆ›å»ºé¢œè‰²ç¼“å†²åŒº
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
 }
   
@@ -103,7 +103,7 @@ Application::~Application()
 
     SafeRelease(m_pKinectSensor);
 
-    // ÇåÀíÑÕÉ«Ïà¹Ø×ÊÔ´
+    // æ¸…ç†é¢œè‰²ç›¸å…³èµ„æº
     if (m_pColorRenderer)
     {
         delete m_pColorRenderer;
@@ -133,20 +133,20 @@ void Application::HandlePaint()
     LARGE_INTEGER currentTime;
     QueryPerformanceCounter(&currentTime);
     double deltaTime = (currentTime.QuadPart - m_nLastCounter) / m_fFreq;
-    const double targetFrameTime = 1.0 / 60.0;  // Ä¿±ê60fps
+    const double targetFrameTime = 1.0 / 60.0;  // ç›®æ ‡60fps
     if (deltaTime < targetFrameTime) {
         return;
     }
 
-    // ¿ªÊ¼»æÖÆ
+    // å¼€å§‹ç»˜åˆ¶
     m_pRenderTarget->BeginDraw();
     
-    // ¸üĞÂ»­ÃæÄÚÈİ£¨°üº¬ÁËÑÕÉ«Ö¡µÄ»æÖÆ£¬»á×Ô¶¯Çå³ı±³¾°£©
+    // æ›´æ–°ç”»é¢å†…å®¹ï¼ˆåŒ…å«äº†é¢œè‰²å¸§çš„ç»˜åˆ¶ï¼Œä¼šè‡ªåŠ¨æ¸…é™¤èƒŒæ™¯ï¼‰
     Update();
 
-    // »æÖÆUIĞÅÏ¢
+    // ç»˜åˆ¶UIä¿¡ï¿½ï¿½
     if (m_isRecording || m_isCalcing) {
-        // ´´½¨ÎÄ±¾¸ñÊ½£¨¿ÉÒÔ»º´æÕâ¸ö¶ÔÏóÒÔÌá¸ßĞÔÄÜ£©
+        // åˆ›å»ºæ–‡æœ¬æ ¼å¼ï¼ˆå¯ä»¥ç¼“å­˜è¿™ä¸ªå¯¹è±¡ä»¥æé«˜æ€§èƒ½ï¼‰
         static IDWriteTextFormat* pTextFormat = nullptr;
         if (!pTextFormat) {
             hr = m_pDWriteFactory->CreateTextFormat(
@@ -167,14 +167,14 @@ void Application::HandlePaint()
             }
 
             if (SUCCEEDED(hr) && m_pBrush) {
-                // »ñÈ¡µ±Ç°ÏàËÆ¶ÈÖµ£¨Ô­×Ó²Ù×÷£©
+                // è·å–å½“å‰ç›¸ä¼¼åº¦å€¼ï¼ˆåŸå­æ“ä½œï¼‰
                 float currentSimilarity = m_fCurrentSimilarity.load(std::memory_order_acquire);
                 
-                // »æÖÆÏàËÆ¶ÈÎÄ±¾
+                // ç»˜åˆ¶ç›¸ä¼¼åº¦æ–‡æœ¬
                 WCHAR similarityText[64];
                 swprintf_s(similarityText, L"Similarity: %.2f%%", currentSimilarity * 100.0f);
                 
-                // ´´½¨°ëÍ¸Ã÷ºÚÉ«±³¾°
+                // åˆ›ï¿½ï¿½åŠé€æ˜é»‘è‰²èƒŒæ™¯
                 ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
                 hr = m_pRenderTarget->CreateSolidColorBrush(
                     D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
@@ -182,12 +182,12 @@ void Application::HandlePaint()
                 );
 
                 if (SUCCEEDED(hr) && pBackgroundBrush) {
-                    // »æÖÆÏàËÆ¶È±³¾°
+                    // ç»˜åˆ¶ç›¸ä¼¼åº¦èƒŒæ™¯
                     m_pRenderTarget->FillRectangle(
                         D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
                         pBackgroundBrush
                     );
-                    // »æÖÆÏàËÆ¶ÈÎÄ±¾
+                    // ç»˜åˆ¶ç›¸ä¼¼åº¦æ–‡æœ¬
                     m_pRenderTarget->DrawText(
                         similarityText, wcslen(similarityText),
                         pTextFormat,
@@ -200,7 +200,7 @@ void Application::HandlePaint()
         }
     }
 
-    // ½áÊø»æÖÆ
+    // ç»“æŸç»˜åˆ¶
     hr = m_pRenderTarget->EndDraw();
     if (hr == D2DERR_RECREATE_TARGET) {
         hr = S_OK;
@@ -208,7 +208,7 @@ void Application::HandlePaint()
         EnsureDirect2DResources();
     }
 
-    // ¸üĞÂÉÏ´Î»æÖÆÊ±¼ä
+    // æ›´æ–°ä¸Šæ¬¡ç»˜åˆ¶æ—¶é—´
     m_nLastCounter = currentTime.QuadPart;
 }
 
@@ -238,7 +238,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         return 0;
     }
 
-    // ÏÈ´´½¨´°¿Ú
+    // å…ˆåˆ›å»ºçª—å£
     LOG_I("Creating main application window...");
     HWND hWndApp = CreateWindowExW(
         0,                              
@@ -258,10 +258,10 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         return 0;
     }
 
-    // ´æ´¢´°¿Ú¾ä±ú
+    // å­˜å‚¨çª—å£å¥æŸ„
     m_hWnd = hWndApp;
 
-    // ³õÊ¼»¯ Direct2D ºÍ Kinect
+    // åˆå§‹åŒ– Direct2D å’Œ Kinect
     HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory);
     if (FAILED(hr)) {
         LOG_E("Failed to create D2D factory: 0x{:08X}", hr);
@@ -273,7 +273,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         return 0;
     }
 
-    // ´´½¨ÓÃÓÚD2D»æÖÆµÄ×Ó´°¿Ú
+    // åˆ›å»ºç”¨äºD2Dç»˜åˆ¶çš„å­çª—å£
     HWND hWndVideo = CreateWindowExW(
         0,
         L"STATIC",
@@ -292,18 +292,18 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         return 0;
     }
 
-    // ÏÔÊ¾´°¿Ú
+    // æ˜¾ç¤ºçª—å£
     ShowWindow(hWndApp, nCmdShow);
     UpdateWindow(hWndApp);
 
-    // Ê¹ÓÃ¸ß¾«¶È¶¨Ê±Æ÷
+    // ä½¿ç”¨é«˜ç²¾åº¦å®šæ—¶å™¨
     LARGE_INTEGER freq;
     QueryPerformanceFrequency(&freq);
     LARGE_INTEGER lastTime;
     QueryPerformanceCounter(&lastTime);
     const double frameTime = 1.0 / 60.0;
 
-    // Ö÷ÏûÏ¢Ñ­»·
+    // ä¸»æ¶ˆæ¯å¾ªç¯
     while (WM_QUIT != msg.message) {
         if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
@@ -317,7 +317,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
             continue;
         }
 
-        // Ö¡¸üĞÂÂß¼­
+        // å¸§æ›´æ–°é€»è¾‘
         LARGE_INTEGER currentTime;
         QueryPerformanceCounter(&currentTime);
         double deltaTime = (currentTime.QuadPart - lastTime.QuadPart) / (double)freq.QuadPart;
@@ -347,7 +347,7 @@ void Application::Update()
         return;
     }
 
-    // Ê×ÏÈ´¦ÀíÑÕÉ«Ö¡
+    // é¦–å…ˆå¤„ç†é¢œè‰²å¸§
     IColorFrame* pColorFrame = NULL;
     HRESULT hr = m_pColorFrameReader->AcquireLatestFrame(&pColorFrame);
     if (SUCCEEDED(hr))
@@ -401,7 +401,7 @@ void Application::Update()
 
         if (SUCCEEDED(hr))
         {
-            // ÏÈ»æÖÆÑÕÉ«Ö¡
+            // å…ˆç»˜åˆ¶é¢œè‰²å¸§
             ProcessColor(nTime, pBuffer, nWidth, nHeight);
         }
 
@@ -409,7 +409,7 @@ void Application::Update()
     }
     SafeRelease(pColorFrame);
 
-    // È»ºó´¦Àí¹Ç÷ÀÖ¡
+    // ç„¶åå¤„ç†ï¿½ï¿½ï¿½éª¼å¸§
     IBodyFrame* pBodyFrame = NULL;
     hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
     if (SUCCEEDED(hr))
@@ -492,7 +492,7 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
             // Get and initialize the default Kinect sensor
             if(InitializeDefaultSensor() < 0) {
-                // >>> Ìí¼Ó¸öÅĞ¶Ï£¬²âÊÔ³õÊ¼»¯
+                // >>> æ·»åŠ ä¸ªåˆ¤æ–­ï¼Œæµ‹è¯•åˆå§‹åŒ–
                 LOG_E("InitializeDefaultSensor");
                 exit(1);
             }
@@ -516,7 +516,7 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
                 GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rc);
                 D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
                 
-                // Ö»ÓĞµ±´óĞ¡ÕæµÄ¸Ä±äÊ±²Åµ÷Õû
+                // åªæœ‰å½“å¤§å°çœŸçš„æ”¹å˜æ—¶æ‰è°ƒæ•´
                 D2D1_SIZE_U currentSize = m_pRenderTarget->GetPixelSize();
                 if (size.width != currentSize.width || size.height != currentSize.height)
                 {
@@ -527,7 +527,7 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
             return 0;
 
         case WM_TIMER:
-            if (wParam == 1)  // ÎÒÃÇµÄ¸üĞÂ¶¨Ê±Æ÷
+            if (wParam == 1)  // æˆ‘ä»¬çš„æ›´æ–°å®šæ—¶å™¨
             {
                 if (m_pBodyFrameReader)
                 {
@@ -553,15 +553,15 @@ HRESULT Application::InitializeDefaultSensor()
     }
 
     if (m_pKinectSensor) {
-        // ³õÊ¼»¯ Kinect
+        // ï¿½ï¿½ï¿½å§‹åŒ– Kinect
         hr = m_pKinectSensor->Open();
 
         if (SUCCEEDED(hr)) {
-            // »ñÈ¡×ø±êÓ³ÉäÆ÷
+            // è·å–åæ ‡æ˜ å°„å™¨
             hr = m_pKinectSensor->get_CoordinateMapper(&m_pCoordinateMapper);
         }
 
-        // ³õÊ¼»¯¹Ç÷ÀÖ¡Ô´
+        // åˆå§‹åŒ–éª¨éª¼å¸§æº
         if (SUCCEEDED(hr)) {
             IBodyFrameSource* pBodyFrameSource = NULL;
             hr = m_pKinectSensor->get_BodyFrameSource(&pBodyFrameSource);
@@ -571,7 +571,7 @@ HRESULT Application::InitializeDefaultSensor()
             SafeRelease(pBodyFrameSource);
         }
 
-        // ³õÊ¼»¯ÑÕÉ«Ö¡Ô´
+        // åˆå§‹åŒ–é¢œè‰²å¸§æº
         if (SUCCEEDED(hr)) {
             IColorFrameSource* pColorFrameSource = NULL;
             hr = m_pKinectSensor->get_ColorFrameSource(&pColorFrameSource);
@@ -601,21 +601,21 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
         return;
     }
 
-    // »ñÈ¡´°¿Ú´óĞ¡
+    // è·å–çª—å£å¤§å°
     RECT rct;
     GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rct);
     int width = rct.right;
     int height = rct.bottom;
 
-    static kfc::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE);  // ¶¯×÷»º³åÇø
-    static std::future<float> similarityFuture;                // Òì²½¼ÆËãÏàËÆ¶ÈÈÎÎñ
-    static std::vector<std::future<void>> saveFutures;         // ±£´æÖ¡µÄfutureÁĞ±í
-    static INT64 lastRecordedTime = 0;                        // ÉÏ´Î¼ÇÂ¼Ê±¼ä´Á
-    static std::mutex recordMutex;                            // ¼ÇÂ¼»¥³âËø
-    static INT64 lastCompareTime = 0;                         // ÉÏ´Î±È½ÏÊ±¼ä´Á
-    static bool needsUpdate = false;                          // ÊÇ·ñĞèÒª¸üĞÂÏÔÊ¾
+    static kfc::ActionBuffer actionBuffer(ACTION_BUFFER_SIZE);  // åŠ¨ä½œç¼“å†²åŒº
+    static std::future<float> similarityFuture;                // å¼‚æ­¥è®¡ç®—ç›¸ä¼¼åº¦ä»»åŠ¡
+    static std::vector<std::future<void>> saveFutures;         // ä¿å­˜å¸§çš„futureåˆ—è¡¨
+    static INT64 lastRecordedTime = 0;                        // ä¸Šæ¬¡è®°å½•æ—¶é—´æˆ³
+    static std::mutex recordMutex;                            // è®°å½•äº’æ–¥é”
+    static INT64 lastCompareTime = 0;                         // ä¸Šæ¬¡æ¯”è¾ƒæ—¶é—´æˆ³
+    static bool needsUpdate = false;                          // æ˜¯å¦éœ€è¦æ›´æ–°æ˜¾ç¤º
 
-    // ÇåÀíÒÑÍê³ÉµÄ±£´æÈÎÎñ
+    // æ¸…ç†å·²å®Œæˆçš„ä¿å­˜ä»»åŠ¡
     saveFutures.erase(
         std::remove_if(
             saveFutures.begin(), 
@@ -627,56 +627,56 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
         saveFutures.end()
     );
 
-    // Ê×ÏÈ»æÖÆ±ê×¼¶¯×÷£¨Èç¹û´æÔÚÇÒÕıÔÚ¼ÆËãÏàËÆ¶È£©
+    // é¦–å…ˆç»˜åˆ¶æ ‡å‡†åŠ¨ä½œï¼ˆå¦‚æœå­˜åœ¨ä¸”æ­£åœ¨è®¡ç®—ç›¸ä¼¼åº¦ï¼‰
     if (m_isCalcing && kfc::g_actionTemplate) {
         std::lock_guard<std::mutex> lock(kfc::templateMutex);
         const auto& frames = kfc::g_actionTemplate->getFrames();
         
-        // Ö»ÓĞÔÚ²¥·Å×´Ì¬Ê±²ÅÏÔÊ¾±ê×¼¶¯×÷
+        // åªæœ‰åœ¨æ’­æ”¾çŠ¶æ€æ—¶æ‰æ˜¾ç¤ºæ ‡å‡†åŠ¨ä½œ
         if (!frames.empty() && m_isPlayingTemplate) {
-            // ³õÊ¼»¯²¥·ÅÆğµãÊ±¼ä
+            // åˆå§‹åŒ–æ’­æ”¾èµ·ç‚¹æ—¶é—´
             if (m_playbackStartTime == 0) {
                 m_playbackStartTime = nTime;
             }
 
-            // Ê¹ÓÃÊµ¼ÊµÄÊ±¼ä´Á²îÖµÀ´¼ÆËãµ±Ç°Ö¡
+            // ä½¿ç”¨å®é™…çš„æ—¶é—´æˆ³å·®å€¼æ¥è®¡ç®—å½“å‰å¸§
             INT64 elapsedTime = nTime - m_playbackStartTime;
             
-            // »ñÈ¡µÚÒ»Ö¡ºÍ×îºóÒ»Ö¡µÄÊ±¼ä´Á²îÖµ
+            // è·å–ç¬¬ä¸€å¸§å’Œæœ€åä¸€å¸§çš„æ—¶é—´æˆ³å·®å€¼
             INT64 totalDuration = frames.back().timestamp - frames.front().timestamp;
             
-            // ¼ÆËãµ±Ç°Ó¦¸Ã²¥·ÅµÄÖ¡
+            // è®¡ç®—å½“å‰åº”è¯¥æ’­æ”¾çš„å¸§
             size_t frameIndex = 0;
             if (totalDuration > 0) {
-                // ¼ÆËã²¥·Å½ø¶È£¨0.0 µ½ 1.0£©
+                // è®¡ç®—æ’­æ”¾è¿›åº¦ï¼ˆ0.0 åˆ° 1.0ï¼‰
                 double progress = static_cast<double>(elapsedTime % totalDuration) / totalDuration;
                 frameIndex = static_cast<size_t>(progress * (frames.size() - 1));
             }
             
             const auto& templateFrame = frames[frameIndex];
             
-            // ×¼±¸¹Ø½ÚµãÊı¾İ
+            // å‡†å¤‡å…³èŠ‚ç‚¹æ•°æ®
             D2D1_POINT_2F templateJointPoints[JointType_Count];
             
-            // ½«Ä£°å¹Ç÷ÀÊı¾İ×ª»»ÎªÆÁÄ»×ø±ê
+            // å°†æ¨¡æ¿éª¨éª¼æ•°æ®è½¬æ¢ä¸ºå±å¹•åæ ‡
             for (const auto& joint : templateFrame.joints) {
                 templateJointPoints[joint.type] = BodyToScreen(joint.position, width, height);
             }
             
-            // »æÖÆÄ£°å¹Ç÷À
+            // ç»˜åˆ¶æ¨¡æ¿éª¨éª¼
             DrawTemplateBody(templateFrame.joints.data(), templateJointPoints);
         }
     }
 
     if (m_isRecording) {
-        // ´´½¨Â¼ÖÆÎÄ¼şÃû
+        // åˆ›å»ºå½•åˆ¶æ–‡ä»¶å
         if (m_recordFilePath.empty()) {
             m_recordFilePath = kfc::generateRecordingPath();
             LOG_I("Started recording to file: {}", m_recordFilePath);
         }
     }
 
-    // ±éÀúÃ¿¸ö²¶×½µ½µÄÉíÌå
+    // éå†æ¯ä¸ªæ•æ‰åˆ°çš„èº«ä½“
     for (int i = 0; i < nBodyCount; ++i) {
         IBody* pBody = ppBodies[i];
         if (pBody) {
@@ -694,7 +694,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                 hr = pBody->GetJoints(_countof(joints), joints);
                 if (SUCCEEDED(hr)) {
-                    // ×ª»»Îª FrameData ²¢Ìí¼Óµ½»º³åÇø
+                    // è½¬æ¢ä¸º FrameData å¹¶æ·»åŠ åˆ°ç¼“å†²åŒº
                     kfc::FrameData frameData;
                     frameData.timestamp = nTime;
 
@@ -707,17 +707,17 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                         jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
                     }
 
-                    actionBuffer.addFrame(frameData); // Ìí¼Óµ½¶¯×÷»º³åÇø
+                    actionBuffer.addFrame(frameData); // æ·»åŠ åˆ°åŠ¨ä½œç¼“å†²åŒº
 
-                    // ¶¨ÆÚ¼ÆËãÏàËÆ¶È£¨Òì²½£¬Ã¿Ãë4´Î£©
-                    const INT64 similarityInterval = 250 * 10000;  // 250ms = 1/4Ãë
+                    // å®šæœŸè®¡ç®—ç›¸ä¼¼åº¦ï¼ˆå¼‚æ­¥ï¼Œæ¯ç§’4æ¬¡ï¼‰
+                    const INT64 similarityInterval = 250 * 10000;  // 250ms = 1/4ç§’
                     if (nTime - lastCompareTime >= similarityInterval) {
                         lastCompareTime = nTime;
                         if (kfc::g_actionTemplate) {
-                            // ¼ì²éÉÏÒ»´ÎµÄ¼ÆËãÊÇ·ñÍê³É
+                            // æ£€æŸ¥ä¸Šä¸€æ¬¡çš„è®¡ç®—æ˜¯å¦å®Œæˆ
                             if (!similarityFuture.valid() || 
                                 similarityFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-                                // Èç¹ûÓĞÉÏÒ»´ÎµÄ½á¹û£¬ÏÈ»ñÈ¡Ëü
+                                // å¦‚æœæœ‰ä¸Šä¸€æ¬¡çš„ç»“æœï¼Œå…ˆè·å–å®ƒ
                                 if (similarityFuture.valid()) {
                                     float lastSimilarity = similarityFuture.get();
                                     if (std::abs(lastSimilarity - m_fCurrentSimilarity.load()) > 0.01f) {
@@ -726,13 +726,13 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                     }
                                 }
                                 
-                                // Æô¶¯ĞÂµÄÒì²½¼ÆËã
-                                auto bufferCopy = actionBuffer;  // ´´½¨»º³åÇøµÄ¸±±¾
+                                // å¯åŠ¨æ–°çš„å¼‚æ­¥è®¡ç®—
+                                auto bufferCopy = actionBuffer;  // åˆ›å»ºç¼“å†²åŒºçš„å‰¯æœ¬
                                 similarityFuture = std::async(
                                     std::launch::async,
                                     [](const kfc::ActionBuffer& buffer) {
                                         auto future = kfc::compareActionAsync(buffer);
-                                        return future.get();  // µÈ´ı²¢·µ»Ø½á¹û
+                                        return future.get();  // ç­‰å¾…å¹¶è¿”å›ç»“æœ
                                     },
                                     std::move(bufferCopy)
                                 );
@@ -740,18 +740,18 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                         }
                     }
 
-                    // »æÖÆ¹Ç÷ÀºÍÊÖ²¿×´Ì¬
+                    // ç»˜åˆ¶éª¨éª¼å’Œæ‰‹éƒ¨çŠ¶æ€
                     DrawBody(joints, jointPoints);
                     DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
                     DrawHand(rightHandState, jointPoints[JointType_HandRight]);
 
-                    // ĞòÁĞ»¯µ±Ç°Ö¡£¨Òì²½£©
+                    // åºåˆ—åŒ–å½“å‰å¸§ï¼ˆå¼‚æ­¥ï¼‰
                     if (m_isRecording && !m_recordFilePath.empty() && 
                         (nTime - lastRecordedTime >= kfc::recordInterval)) {
-                        lastRecordedTime = nTime;  // ¸üĞÂÉÏ´Î¼ÇÂ¼Ê±¼ä
+                        lastRecordedTime = nTime;  // æ›´æ–°ä¸Šæ¬¡è®°å½•æ—¶é—´
 
-                        // ÏŞÖÆ²¢·¢±£´æÈÎÎñµÄÊıÁ¿
-                        if (saveFutures.size() < 5) {  // ×î¶à5¸ö²¢·¢±£´æÈÎÎñ
+                        // é™åˆ¶å¹¶å‘ä¿å­˜ä»»åŠ¡çš„æ•°é‡
+                        if (saveFutures.size() < 5) {  // æœ€å¤š5ä¸ªå¹¶å‘ä¿å­˜ä»»åŠ¡
                             saveFutures.push_back(
                                 std::async(std::launch::async, [this, frameData]() {
                                     std::lock_guard<std::mutex> lock(recordMutex);
@@ -773,38 +773,38 @@ void Application::DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppB
 
 void Application::PlayActionTemplate(INT64 nTime) {
     if (!m_isPlayingTemplate || !kfc::g_actionTemplate) {
-        return; // Î´´ò¿ª²¥·Å»òÄ£°åÎ´¼ÓÔØ
+        return; // æœªæ‰“å¼€æ’­æ”¾æˆ–æ¨¡æ¿æœªåŠ è½½
     }
 
-    std::lock_guard<std::mutex> lock(kfc::templateMutex); // È·±£Ïß³Ì°²È«
+    std::lock_guard<std::mutex> lock(kfc::templateMutex); // ç¡®ä¿çº¿ç¨‹å®‰å…¨
     const auto& actionTemplate = *kfc::g_actionTemplate;
 
     const auto& actionFrames = actionTemplate.getFrames();
     if (actionFrames.empty()) {
-        return; // ÎŞÓĞĞ§Ö¡
+        return; // æ— æœ‰æ•ˆå¸§
     }
 
-    // ³õÊ¼»¯²¥·ÅÆğµãÊ±¼ä
+    // åˆå§‹åŒ–æ’­æ”¾èµ·ç‚¹æ—¶é—´
     if (m_playbackStartTime == 0) {
         m_playbackStartTime = nTime;
     }
 
-    // Ê¹ÓÃrecordIntervalÀ´¿ØÖÆ²¥·ÅËÙ¶È
+    // ä½¿ç”¨recordIntervalæ¥æ§åˆ¶æ’­æ”¾é€Ÿåº¦
     INT64 elapsedTime = nTime - m_playbackStartTime;
     size_t frameIndex = (elapsedTime / kfc::recordInterval) % actionTemplate.getFrameCount();
 
-    // Èç¹ûµ±Ç°Ö¡·¢Éú±ä»¯£¬¸üĞÂµ±Ç°Ö¡²¢»æÖÆ
+    // å¦‚æœå½“å‰å¸§å‘ç”Ÿå˜åŒ–ï¼Œæ›´æ–°å½“å‰å¸§å¹¶ç»˜åˆ¶
     if (frameIndex != m_currentFrameIndex) {
         m_currentFrameIndex = frameIndex;
         const auto& frameData = actionFrames[m_currentFrameIndex];
 
-        // ×¼±¸¹Ç¼Üµã
+        // å‡†å¤‡éª¨æ¶ç‚¹
         D2D1_POINT_2F jointPoints[JointType_Count];
         for (const auto& jointData : frameData.joints) {
             jointPoints[jointData.type] = BodyToScreen(jointData.position, cColorWidth, cColorHeight);
         }
 
-        // ¶¨Òå¹Ç÷ÀÁ¬½Ó¹ØÏµ
+        // å®šä¹‰éª¨éª¼è¿æ¥å…³ç³»
         static const std::vector<std::pair<JointType, JointType>> bonePairs = {
             {JointType_Head, JointType_Neck},
             {JointType_Neck, JointType_SpineShoulder},
@@ -828,13 +828,13 @@ void Application::PlayActionTemplate(INT64 nTime) {
             {JointType_AnkleLeft, JointType_FootLeft},
         };
 
-        // »æÖÆ¹Ç÷À
+        // ç»˜åˆ¶éª¨éª¼
         for (const auto& bone : bonePairs) {
             const auto& joint0 = frameData.joints[bone.first];
             const auto& joint1 = frameData.joints[bone.second];
 
             if (joint0.trackingState == TrackingState_NotTracked || joint1.trackingState == TrackingState_NotTracked) {
-                continue; // Ìø¹ıÎ´¸ú×ÙµÄ¹Ç÷À
+                continue; // è·³è¿‡æœªè·Ÿè¸ªçš„éª¨éª¼
             }
 
             auto brush = (joint0.trackingState == TrackingState_Tracked && joint1.trackingState == TrackingState_Tracked)
@@ -849,7 +849,7 @@ void Application::PlayActionTemplate(INT64 nTime) {
             );
         }
 
-        // »æÖÆ¹Ø½Ú
+        // ç»˜åˆ¶å…³èŠ‚
         for (const auto& jointData : frameData.joints) {
             auto brush = (jointData.trackingState == TrackingState_Tracked)
                 ? m_pBrushJointTracked
@@ -870,7 +870,7 @@ void Application::DrawTemplateBody(const kfc::JointData* pJoints, const D2D1_POI
         return;
     }
 
-    // »æÖÆ¹Ç÷À
+    // ç»˜åˆ¶éª¨éª¼
     // Torso
     DrawTemplateBone(pJoints, pJointPoints, JointType_Head, JointType_Neck);
     DrawTemplateBone(pJoints, pJointPoints, JointType_Neck, JointType_SpineShoulder);
@@ -905,7 +905,7 @@ void Application::DrawTemplateBody(const kfc::JointData* pJoints, const D2D1_POI
     DrawTemplateBone(pJoints, pJointPoints, JointType_KneeLeft, JointType_AnkleLeft);
     DrawTemplateBone(pJoints, pJointPoints, JointType_AnkleLeft, JointType_FootLeft);
 
-    // »æÖÆ¹Ø½Úµã
+    // ç»˜åˆ¶å…³èŠ‚ç‚¹
     for (int i = 0; i < JointType_Count; ++i) {
         D2D1_ELLIPSE ellipse = D2D1::Ellipse(pJointPoints[i], c_JointThickness, c_JointThickness);
         m_pRenderTarget->FillEllipse(ellipse, m_pBrushJointTemplate);
@@ -917,7 +917,7 @@ void Application::DrawTemplateBone(const kfc::JointData* pJoints, const D2D1_POI
     D2D1_POINT_2F joint0Position = pJointPoints[joint0];
     D2D1_POINT_2F joint1Position = pJointPoints[joint1];
 
-    // ¹Ç÷ÀÁ¬½ÓµÄ×´Ì¬¼ì²é£¨ºöÂÔÍÆ¶ÏµÄ×´Ì¬£©
+    // éª¨éª¼è¿æ¥çš„çŠ¶æ€æ£€æŸ¥ï¼ˆå¿½ç•¥æ¨æ–­çš„çŠ¶æ€ï¼‰
     if (pJoints[joint0].trackingState == TrackingState_NotTracked ||
         pJoints[joint1].trackingState == TrackingState_NotTracked) {
         return;
@@ -955,7 +955,7 @@ HRESULT Application::EnsureDirect2DResources()
 {
     HRESULT hr = S_OK;
 
-    // È·±£ D2D Factory ´æÔÚ
+    // ç¡®ä¿ D2D Factory å­˜åœ¨
     if (!m_pD2DFactory) {
         LOG_E("D2D Factory is NULL");
         return E_FAIL;
@@ -983,7 +983,7 @@ HRESULT Application::EnsureDirect2DResources()
             return E_FAIL;
         }
 
-        // È·±£´°¿Ú³ß´çÓĞĞ§
+        // ç¡®ä¿çª—å£å°ºå¯¸æœ‰æ•ˆ
         if (rc.right <= rc.left || rc.bottom <= rc.top) {
             LOG_E("Invalid window size: {}x{}", rc.right - rc.left, rc.bottom - rc.top);
             return E_FAIL;
@@ -1017,7 +1017,7 @@ HRESULT Application::EnsureDirect2DResources()
             return hr;
         }
 
-        // ´´½¨»­±Ê×ÊÔ´
+        // åˆ›å»ºç”»ç¬”èµ„æº
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0.27f, 0.75f, 0.27f), &m_pBrushJointTracked);
         if (FAILED(hr)) {
             LOG_E("Failed to create joint tracked brush: 0x{:08X}", hr);
@@ -1036,15 +1036,15 @@ HRESULT Application::EnsureDirect2DResources()
             return hr;
         }
 
-        // ´´½¨ÆäËû±ØÒªµÄ»­±Ê
+        // åˆ›å»ºå…¶ä»–å¿…è¦çš„ç”»ç¬”
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Gray), &m_pBrushBoneInferred);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Red), &m_pBrushHandClosed);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Green), &m_pBrushHandOpen);
         hr = m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Blue), &m_pBrushHandLasso);
 
-        // ´´½¨±ê×¼¶¯×÷µÄ¹Ø½Ú»­±Ê£¨À¶É«£©
+        // åˆ›å»ºæ ‡å‡†åŠ¨ä½œçš„å…³èŠ‚ç”»ç¬”ï¼ˆè“è‰²ï¼‰
         hr = m_pRenderTarget->CreateSolidColorBrush(
-            D2D1::ColorF(D2D1::ColorF::Blue), // À¶É«
+            D2D1::ColorF(D2D1::ColorF::Blue), // è“è‰²
             &m_pBrushJointTemplate
         );
 
@@ -1053,9 +1053,9 @@ HRESULT Application::EnsureDirect2DResources()
             return hr;
         }
 
-        // ´´½¨±ê×¼¶¯×÷µÄ¹Ç÷À»­Ë¢£¨Ç³À¶É«£©
+        // åˆ›å»ºæ ‡å‡†åŠ¨ä½œçš„éª¨éª¼ç”»åˆ·ï¼ˆæµ…è“è‰²ï¼‰
         hr = m_pRenderTarget->CreateSolidColorBrush(
-            D2D1::ColorF(D2D1::ColorF::LightBlue), // Ç³À¶É«
+            D2D1::ColorF(D2D1::ColorF::LightBlue), // æµ…è“è‰²
             &m_pBrushBoneTemplate
         );
 
@@ -1242,7 +1242,7 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
         return;
     }
 
-    // Ê¹ÓÃÀà³ÉÔ±±äÁ¿¹ÜÀíÎ»Í¼
+    // ä½¿ç”¨ç±»æˆå‘˜å˜é‡ç®¡ç†ä½å›¾
     if (!m_pColorBitmap || 
         m_colorBitmapSize.width != nWidth || 
         m_colorBitmapSize.height != nHeight)
@@ -1266,14 +1266,14 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
         }
     }
 
-    // ¸üĞÂÎ»Í¼Êı¾İ
+    // æ›´æ–°ä½å›¾æ•°æ®
     D2D1_RECT_U updateRect = D2D1::RectU(0, 0, nWidth, nHeight);
     m_pColorBitmap->CopyFromMemory(&updateRect, pBuffer, nWidth * sizeof(RGBQUAD));
 
-    // »ñÈ¡äÖÈ¾Ä¿±êµÄ´óĞ¡
+    // è·å–æ¸²æŸ“ç›®æ ‡çš„å¤§å°
     D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
 
-    // ¼ÆËãÄ¿±ê¾ØĞÎ£¬±£³Ö×İºá±È
+    // è®¡ç®—ç›®æ ‡çŸ©å½¢ï¼Œä¿æŒçºµæ¨ªæ¯”
     float aspectRatio = static_cast<float>(nWidth) / nHeight;
     float targetWidth = rtSize.width;
     float targetHeight = rtSize.height;
@@ -1292,7 +1292,7 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
 
     D2D1_RECT_F destRect = D2D1::RectF(x, y, x + targetWidth, y + targetHeight);
 
-    // »æÖÆÎ»Í¼
+    // ç»˜åˆ¶ä½å›¾
     m_pRenderTarget->DrawBitmap(
         m_pColorBitmap,
         destRect,

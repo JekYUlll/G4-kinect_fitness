@@ -2,25 +2,25 @@
 
 namespace kfc {
 
-    // È«¾Ö±äÁ¿
+    // å…¨å±€å˜é‡
     std::mutex templateMutex;
     std::unique_ptr<ActionTemplate> g_actionTemplate;
 
-    // ĞòÁĞ»¯µ½ÎÄ¼ş
+    // åºåˆ—åŒ–åˆ°æ–‡ä»¶
     void JointData::serialize(std::ofstream& out) const {
         out.write(reinterpret_cast<const char*>(&type), sizeof(type));
         out.write(reinterpret_cast<const char*>(&position), sizeof(position));
         out.write(reinterpret_cast<const char*>(&trackingState), sizeof(trackingState));
     }
 
-    // ´ÓÎÄ¼ş·´ĞòÁĞ»¯
+    // ä»æ–‡ä»¶ååºåˆ—åŒ–
     void JointData::deserialize(std::ifstream& in) {
         in.read(reinterpret_cast<char*>(&type), sizeof(type));
         in.read(reinterpret_cast<char*>(&position), sizeof(position));
         in.read(reinterpret_cast<char*>(&trackingState), sizeof(trackingState));
     }
 
-    // ĞòÁĞ»¯µ½ÎÄ¼ş
+    // åºåˆ—åŒ–åˆ°æ–‡ä»¶
     void FrameData::serialize(std::ofstream& out) const {
         out.write(reinterpret_cast<const char*>(&timestamp), sizeof(timestamp));
         size_t jointCount = joints.size();
@@ -30,7 +30,7 @@ namespace kfc {
         }
     }
 
-    // ´ÓÎÄ¼ş·´ĞòÁĞ»¯
+    // ä»æ–‡ä»¶ååºåˆ—åŒ–
     void FrameData::deserialize(std::ifstream& in) {
         in.read(reinterpret_cast<char*>(&timestamp), sizeof(timestamp));
         size_t jointCount;
@@ -41,7 +41,7 @@ namespace kfc {
         }
     }
 
-    // ĞòÁĞ»¯Ò»Ö¡µÄ¹Ç÷ÀÊı¾İµ½ÎÄ¼ş
+    // åºåˆ—åŒ–ä¸€å¸§çš„éª¨éª¼æ•°æ®åˆ°æ–‡ä»¶
     bool SaveFrame(const std::string& filename, const FrameData& frame, bool append) {
         try {
             std::ofstream out(filename, append ? (std::ios::binary | std::ios::app) : std::ios::binary);
@@ -56,7 +56,7 @@ namespace kfc {
         }
     }
 
-    // ´ÓÎÄ¼ş¶ÁÈ¡Ò»Ö¡¹Ç÷ÀÊı¾İ
+    // ä»æ–‡ä»¶è¯»å–ä¸€å¸§éª¨éª¼æ•°æ®
     bool LoadFrame(const std::string& filename, FrameData& frame) {
         try {
             std::ifstream in(filename, std::ios::binary);
@@ -71,33 +71,33 @@ namespace kfc {
         }
     }
 
-    // ¹¹Ôìº¯Êı£¬¼ÓÔØ±ê×¼¶¯×÷ÎÄ¼ş
+    // æ„é€ å‡½æ•°ï¼ŒåŠ è½½æ ‡å‡†åŠ¨ä½œæ–‡ä»¶
     ActionTemplate::ActionTemplate(const std::string& filePath) {
         _frames = std::make_unique<std::vector<kfc::FrameData>>();
         
-        // È·±£Ä¿Â¼´æÔÚ
+        // ç¡®ä¿ç›®å½•å­˜åœ¨
         if (!kfc::ensureDirectoryExists()) {
-            LOG_E("ÎŞ·¨È·±£Ä¿Â¼½á¹¹´æÔÚ");
+            LOG_E("Failed to ensure directory structure");
             throw std::runtime_error("Failed to ensure directory structure");
         }
 
-        // »ñÈ¡ÍêÕûÂ·¾¶
+        // è·å–å®Œæ•´è·¯å¾„
         std::string fullPath = kfc::getStandardActionPath(filePath);
-        //LOG_D("±ê×¼¶¯×÷ÎÄ¼şÍêÕûÂ·¾¶: {}", fullPath);
+        //LOG_D("æ ‡å‡†åŠ¨ä½œæ–‡ä»¶å®Œæ•´è·¯å¾„: {}", fullPath);
         
         if (!loadFromFile(fullPath)) {
-            LOG_E("ÎŞ·¨´ÓÎÄ¼ş¼ÓÔØ±ê×¼¶¯×÷: {}", fullPath);
+            LOG_E("Failed to load action template from file: " + fullPath);
             throw std::runtime_error("Failed to load action template from file: " + fullPath);
         }
     }
 
-    // ¼ÓÔØ±ê×¼¶¯×÷Êı¾İ
+    // åŠ è½½æ ‡å‡†åŠ¨ä½œæ•°æ®
     bool ActionTemplate::loadFromFile(const std::string& filename) {
         try {
             //std::string filepath = std::string(KF_DATA_DIR) + "\\" + filename;
             std::ifstream in(filename, std::ios::binary);
             if (!in) {
-                LOG_E("ÎŞ·¨´ò¿ª±ê×¼¶¯×÷ÎÄ¼ş: {}", filename);
+                LOG_E("Failed to open file for reading: {}", filename);
                 return false;
             }
 
@@ -111,23 +111,24 @@ namespace kfc {
             }
 
             in.close();
-            LOG_I("³É¹¦¼ÓÔØ±ê×¼¶¯×÷ÎÄ¼ş: {}", filename);
-            LOG_D("×Ü¹²¼ÓÔØÖ¡Êı: {}", frameCount);
-            LOG_D("µÚÒ»Ö¡¹Ø½ÚÊı: {}", _frames->empty() ? 0 : _frames->front().joints.size());
+            LOG_I("Loading action template from file: {}", filename);
+            LOG_I("Action template loaded successfully");
+            LOG_D("Frame count: {}", frameCount);
+            LOG_D("First joint count: {}", _frames->empty() ? 0 : _frames->front().joints.size());
 
             return true;
         }
         catch (const std::exception& e) {
-            LOG_E("¼ÓÔØ±ê×¼¶¯×÷ÎÄ¼şÊ±·¢ÉúÒì³£: {}", e.what());
+            LOG_E("Failed to load action template: {}", e.what());
             return false;
         }
         catch (...) {
-            LOG_E("¼ÓÔØ±ê×¼¶¯×÷ÎÄ¼şÊ±·¢ÉúÎ´ÖªÒì³£");
+            LOG_E("Failed to load action template");
             return false;
         }
     }
 
-    // °Ñ±ê×¼¶¯×÷´òÓ¡µ½ÈÕÖ¾
+    // æŠŠæ ‡å‡†åŠ¨ä½œæ‰“å°åˆ°æ—¥å¿—
     void ActionTemplate::PrintData() const {
         for (size_t i = 0; i < _frames->size(); ++i) {
             const auto& frame = (*_frames)[i];
@@ -141,7 +142,7 @@ namespace kfc {
         }
     }
 
-    // Òì²½¼ÓÔØ±ê×¼¶¯×÷
+    // å¼‚æ­¥åŠ è½½æ ‡å‡†åŠ¨ä½œ
     std::future<bool> loadStandardActionAsync(const std::string& filePath) {
         return std::async(std::launch::async, [&]() {
             std::lock_guard<std::mutex> lock(templateMutex);

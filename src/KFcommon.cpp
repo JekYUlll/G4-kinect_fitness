@@ -2,15 +2,15 @@
 #include <filesystem>
 
 namespace kfc {
-	std::string std_file_path = ""; // ±ê×¼¶¯×÷ÎÄ¼şÂ·¾¶
+	std::string std_file_path = ""; // æ ‡å‡†åŠ¨ä½œæ–‡ä»¶è·¯å¾„
 	int window_width = 800;
 	int window_height = 600;
 	INT64 recordInterval = 33; // ~30fps
 
-	// È·±£Â¼ÖÆÄ¿Â¼´æÔÚ
+	// ç¡®ä¿å½•åˆ¶ç›®å½•å­˜åœ¨
 	bool ensureDirectoryExists() {
 		try {
-			// Ö»ÔÚĞèÒªÂ¼ÖÆÊ±´´½¨Êı¾İÄ¿Â¼
+			// åªåœ¨éœ€è¦å½•åˆ¶æ—¶åˆ›å»ºæ•°æ®ç›®å½•
 			if (!std::filesystem::exists(KF_DATA_DIR)) {
 				if (!std::filesystem::create_directory(KF_DATA_DIR)) {
 					LOG_E("Failed to create recording directory: {}", KF_DATA_DIR);
@@ -26,14 +26,14 @@ namespace kfc {
 		}
 	}
 
-	// »ñÈ¡±ê×¼¶¯×÷ÎÄ¼şµÄÍêÕûÂ·¾¶£¨Ö±½Ó´ÓexeÍ¬¼¶Ä¿Â¼¶ÁÈ¡£©
+	// è·å–æ ‡å‡†åŠ¨ä½œæ–‡ä»¶çš„å®Œæ•´è·¯å¾„ï¼ˆç›´æ¥ä»exeåŒçº§ç›®å½•è¯»å–ï¼‰
 	std::string getStandardActionPath(const std::string& filename) {
-		return filename; // Ö±½Ó·µ»ØÎÄ¼şÃû£¬´ÓexeÍ¬¼¶Ä¿Â¼¶ÁÈ¡
+		return filename; // ç›´æ¥è¿”å›æ–‡ä»¶åï¼Œä»exeåŒçº§ç›®å½•è¯»å–
 	}
 
-	// »ñÈ¡ĞÂÂ¼ÖÆÎÄ¼şµÄÂ·¾¶£¨´æ´¢µ½dataÄ¿Â¼£©
+	// è·å–æ–°å½•åˆ¶æ–‡ä»¶çš„è·¯å¾„ï¼ˆå­˜å‚¨åˆ°dataç›®å½•ï¼‰
 	std::string generateRecordingPath() {
-		// È·±£Â¼ÖÆÄ¿Â¼´æÔÚ
+		// ç¡®ä¿å½•åˆ¶ç›®å½•å­˜åœ¨
 		if (!ensureDirectoryExists()) {
 			LOG_E("Failed to ensure recording directory exists");
 			return "";

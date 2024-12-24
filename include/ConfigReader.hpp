@@ -35,9 +35,8 @@ namespace kfc {
                     key = Trim(key);
                     value = Trim(value);
                     if (key == "file_path") {
-
                         config.std_file_path = value;
-                        LOG_D("读取标准动作文件路径: {}", value);
+                        LOG_D("Reading standard action file path: {}", value);
                     }
                     else if (key == "window_width") {
                         config.window_width = std::stoi(value);
@@ -53,39 +52,37 @@ namespace kfc {
             configFile.close();
         }
         else {
-            LOG_E("无法打开配置文件: {}", configFilePath);
+            LOG_E("Failed to open config file: {}", configFilePath);
         }
         return config;
     }
 
     inline void InitConfig(const std::string& configFile) {
-        // LOG_D("开始读取配置文件: {}", configFile);
-        
         Config config = ReadConfig(configFile);
         if(configFile.empty()){
-            LOG_E("配置文件 {} 加载失败", configFile);
+            LOG_E("Failed to load config file: {}", configFile);
             return;
         } else {
-            LOG_I("成功加载配置文件: {}", configFile);
+            LOG_I("Successfully loaded config file: {}", configFile);
         }
         
         if (config.std_file_path.empty()) {
-            LOG_E("标准动作文件路径未设置");
+            LOG_E("Standard action file path not set");
             return;
         }
 
-        LOG_D("标准动作文件路径设置为: {}", config.std_file_path);
+        LOG_D("Standard action file path set to: {}", config.std_file_path);
 
-        // 加载标准动作
+        // Load standard action
         try {
             g_actionTemplate = std::make_unique<ActionTemplate>(config.std_file_path);
             /*if (g_actionTemplate && !g_actionTemplate->getFrames().empty()) {
-                LOG_I("标准动作加载成功! 共有 {} 帧数据。", g_actionTemplate->getFrameCount());
+                LOG_I("Standard action loaded successfully! Total {} frames.", g_actionTemplate->getFrameCount());
             } else {
-                LOG_E("标准动作加载失败或帧数为0");
+                LOG_E("Failed to load standard action or frame count is 0");
             }*/
         } catch (const std::exception& e) {
-            LOG_E("加载标准动作时发生异常: {}", e.what());
+            LOG_E("Exception occurred while loading standard action: {}", e.what());
         }
     }
 }

@@ -2,6 +2,7 @@
 #include <strsafe.h>
 #include <string>
 #include <memory>
+#include <iostream>
 
 #include "stdafx.h"
 #include "resource.h"

@@ -1,11 +1,11 @@
-#include "calc/compare.h"
+ï»¿#include "calc/compare.h"
 #include <Eigen/Dense>
 #include <map>
 
 namespace kfc {
-    // ¶¨Òå¹Ø½ÚÈ¨ÖØÓ³Éä
+    // å®šä¹‰å…³èŠ‚æƒé‡æ˜ å°„
     static const std::map<JointType, float> jointWeights = {
-        // ÊÖ²¿¹Ø½ÚÈ¨ÖØ×î¸ß
+        // æ‰‹éƒ¨å…³èŠ‚æƒé‡æœ€é«˜
         {JointType_HandRight, 2.0f},
         {JointType_HandLeft, 2.0f},
         {JointType_HandTipRight, 2.0f},
@@ -13,7 +13,7 @@ namespace kfc {
         {JointType_ThumbRight, 2.0f},
         {JointType_ThumbLeft, 2.0f},
         
-        // ÊÖ±Û¹Ø½Ú´ÎÖ®
+        // æ‰‹è‡‚å…³èŠ‚æ¬¡ä¹‹
         {JointType_ElbowRight, 1.5f},
         {JointType_ElbowLeft, 1.5f},
         {JointType_WristRight, 1.5f},
@@ -21,12 +21,12 @@ namespace kfc {
         {JointType_ShoulderRight, 1.5f},
         {JointType_ShoulderLeft, 1.5f},
         
-        // Çû¸É¹Ø½ÚÈ¨ÖØÊÊÖĞ
+        // èº¯å¹²å…³èŠ‚æƒé‡é€‚ä¸­
         {JointType_SpineShoulder, 1.2f},
         {JointType_SpineMid, 1.2f},
         {JointType_SpineBase, 1.2f},
         
-        // ÍÈ²¿¹Ø½ÚÈ¨ÖØ½ÏµÍ
+        // è…¿éƒ¨å…³èŠ‚æƒé‡è¾ƒä½
         {JointType_HipRight, 1.0f},
         {JointType_HipLeft, 1.0f},
         {JointType_KneeRight, 1.0f},
@@ -36,31 +36,31 @@ namespace kfc {
         {JointType_FootRight, 0.8f},
         {JointType_FootLeft, 0.8f},
         
-        // Í·²¿¹Ø½Ú
+        // å¤´éƒ¨å…³èŠ‚
         {JointType_Head, 2.0f},
         {JointType_Neck, 2.0f}
     };
 
-    // ¶¨Òå¹Ç÷ÀÁ¬½Ó¹ØÏµ£¬ÓÃÓÚ¼ÆËãÏà¶Ô½Ç¶È
+    // å®šä¹‰éª¨éª¼è¿æ¥å…³ç³»ï¼Œç”¨äºè®¡ç®—ç›¸å¯¹è§’åº¦
     static const std::vector<std::pair<JointType, JointType>> boneConnections = {
-        // Çû¸É
+        // èº¯å¹²
         {JointType_SpineBase, JointType_SpineMid},
         {JointType_SpineMid, JointType_SpineShoulder},
         {JointType_SpineShoulder, JointType_Neck},
         {JointType_Neck, JointType_Head},
-        // ÓÒ±Û
+        // å³è‡‚
         {JointType_SpineShoulder, JointType_ShoulderRight},
         {JointType_ShoulderRight, JointType_ElbowRight},
         {JointType_ElbowRight, JointType_WristRight},
         {JointType_WristRight, JointType_HandRight},
-        // ×ó±Û
+        // å·¦è‡‚
         {JointType_SpineShoulder, JointType_ShoulderLeft},
         {JointType_ShoulderLeft, JointType_ElbowLeft},
         {JointType_ElbowLeft, JointType_WristLeft},
         {JointType_WristLeft, JointType_HandLeft}
     };
 
-    // Ô­Ê¼µÄÅ·ÊÏ¾àÀë¼ÆËã·½·¨£¨±£Áô×÷Îª²Î¿¼£©
+    // åŸå§‹çš„æ¬§æ°è·ç¦»è®¡ç®—æ–¹æ³•ï¼ˆä¿ç•™ä½œä¸ºå‚è€ƒï¼‰
     float calculateJointDistance(const CameraSpacePoint& a, const CameraSpacePoint& b) {
         float dx = a.X - b.X;
         float dy = a.Y - b.Y;
@@ -68,7 +68,7 @@ namespace kfc {
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // Ê¹ÓÃ Eigen ÓÅ»¯µÄÏòÁ¿¼ÆËã
+    // ä½¿ç”¨ Eigen ä¼˜åŒ–ï¿½ï¿½ï¿½å‘é‡è®¡ç®—
     using Vector3d = Eigen::Vector3f;
 
     Vector3d toEigenVector(const CameraSpacePoint& p) {
@@ -92,13 +92,13 @@ namespace kfc {
         return relativePos / spineLength;
     }
 
-    // ¼ÆËãÁ½Ö¡Ö®¼äµÄÏàËÆ¶È
+    // è®¡ç®—ä¸¤å¸§ä¹‹é—´çš„ç›¸ä¼¼åº¦
     float compareFrames(const FrameData& realFrame, const FrameData& templateFrame) {
         if (realFrame.joints.size() != templateFrame.joints.size()) {
             return 0.0f;
         }
 
-        /* Ô­Ê¼µÄ»ùÓÚÅ·ÊÏ¾àÀëµÄ±È½Ï·½·¨£¨×¢ÊÍ±£Áô£©
+        /* åŸå§‹çš„åŸºäºæ¬§æ°è·ç¦»çš„æ¯”è¾ƒæ–¹æ³•ï¼ˆæ³¨é‡Šä¿ç•™ï¼‰
         float totalWeightedSimilarity = 0.0f;
         float totalWeight = 0.0f;
         size_t jointCount = realFrame.joints.size();
@@ -107,14 +107,14 @@ namespace kfc {
             const auto& jointReal = realFrame.joints[i];
             const auto& jointTemplate = templateFrame.joints[i];
 
-            // »ñÈ¡¹Ø½ÚÈ¨ÖØ£¬Èç¹ûÃ»ÓĞ¶¨ÒåÔòÊ¹ÓÃÄ¬ÈÏÈ¨ÖØ1.0
+            // è·å–å…³èŠ‚æƒé‡ï¼Œå¦‚æœæ²¡æœ‰å®šä¹‰åˆ™ä½¿ç”¨é»˜è®¤æƒé‡1.0
             float weight = 1.0f;
             auto it = jointWeights.find(jointReal.type);
             if (it != jointWeights.end()) {
                 weight = it->second;
             }
 
-            // Ö»ÓĞµ±Á½¸ö¹Ø½Ú¶¼±»×·×ÙÊ±²Å¼ÆËãÏàËÆ¶È
+            // åªæœ‰å½“ä¸¤ä¸ªå…³èŠ‚éƒ½è¢«è¿½è¸ªæ—¶æ‰è®¡ç®—ç›¸ä¼¼åº¦
             if (jointReal.trackingState == TrackingState_Tracked && 
                 jointTemplate.trackingState == TrackingState_Tracked) {
                 float distance = calculateJointDistance(jointReal.position, jointTemplate.position);
@@ -128,7 +128,7 @@ namespace kfc {
         float totalWeightedSimilarity = 0.0f;
         float totalWeight = 0.0f;
 
-        // 1. ¼ÆËã½Ç¶ÈÏàËÆ¶È
+        // 1. è®¡ç®—è§’åº¦ç›¸ä¼¼åº¦
         for (const auto& bone : boneConnections) {
             const auto& joint1Real = realFrame.joints[bone.first];
             const auto& joint2Real = realFrame.joints[bone.second];
@@ -157,7 +157,7 @@ namespace kfc {
             }
         }
 
-        // 2. ¼ÆËãÏà¶ÔÎ»ÖÃÏàËÆ¶È
+        // 2. è®¡ç®—ç›¸å¯¹ä½ç½®ç›¸ä¼¼åº¦
         const auto& spineBaseReal = realFrame.joints[JointType_SpineBase];
         const auto& spineMidReal = realFrame.joints[JointType_SpineMid];
         const auto& spineBaseTemplate = templateFrame.joints[JointType_SpineBase];
@@ -168,7 +168,7 @@ namespace kfc {
             spineBaseTemplate.trackingState == TrackingState_Tracked && 
             spineMidTemplate.trackingState == TrackingState_Tracked) {
             
-            // Ê¹ÓÃ Eigen µÄÅúÁ¿ÔËËã
+            // ä½¿ç”¨ Eigen çš„æ‰¹é‡è¿ç®—
             for (size_t i = 0; i < realFrame.joints.size(); ++i) {
                 const auto& jointReal = realFrame.joints[i];
                 const auto& jointTemplate = templateFrame.joints[i];
@@ -203,7 +203,7 @@ namespace kfc {
         return totalWeightedSimilarity / totalWeight;
     }
 
-    // Ê¹ÓÃ Eigen ¼ÓËÙµÄ DTW Ëã·¨
+    // ä½¿ç”¨ Eigen åŠ é€Ÿçš„ DTW ç®—æ³•
     float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames) {
         const size_t M = realFrames.size();
         const size_t N = templateFrames.size();
@@ -212,12 +212,12 @@ namespace kfc {
             return 0.0f;
         }
 
-        // Ê¹ÓÃ Eigen ¾ØÕó´æ´¢ DTW ¼ÆËã½á¹û
+        // ä½¿ç”¨ Eigen çŸ©é˜µå­˜å‚¨ DTW è®¡ç®—ç»“æœ
         Eigen::MatrixXf dtw = Eigen::MatrixXf::Zero(M + 1, N + 1);
         dtw.block(1, 0, M, 1).setConstant(std::numeric_limits<float>::infinity());
         dtw.block(0, 1, 1, N).setConstant(std::numeric_limits<float>::infinity());
 
-        // Ô¤¼ÆËãËùÓĞÖ¡¶ÔµÄÏàËÆ¶È
+        // é¢„è®¡ç®—æ‰€æœ‰å¸§å¯¹çš„ç›¸ä¼¼åº¦
         Eigen::MatrixXf similarityMatrix(M, N);
         for (size_t i = 0; i < M; ++i) {
             for (size_t j = 0; j < N; ++j) {
@@ -225,35 +225,35 @@ namespace kfc {
             }
         }
 
-        // DTW ¶¯Ì¬¹æ»®¼ÆËã
+        // DTW åŠ¨æ€è§„åˆ’è®¡ç®—
         for (size_t i = 1; i <= M; ++i) {
             for (size_t j = 1; j <= N; ++j) {
                 float cost = 1.0f - similarityMatrix(i-1, j-1);
                 dtw(i, j) = cost + std::min({
-                    dtw(i-1, j),   // ²åÈë
-                    dtw(i, j-1),   // É¾³ı
-                    dtw(i-1, j-1)  // Æ¥Åä
+                    dtw(i-1, j),   // æ’å…¥
+                    dtw(i, j-1),   // åˆ é™¤
+                    dtw(i-1, j-1)  // åŒ¹é…
                 });
             }
         }
 
-        // ¼ÆËãÏàËÆ¶ÈµÃ·Ö
+        // è®¡ç®—ç›¸ä¼¼åº¦å¾—åˆ†
         float dtwDistance = dtw(M, N);
         float similarity = 1.0f / (1.0f + dtwDistance / std::max(M, N));
         
-        LOG_D("DTW¾àÀë: {:.2f}, ĞòÁĞ³¤¶È: {} vs {}, ÏàËÆ¶È: {:.2f}%", 
+        LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, similarity: {:.2f}%", 
             dtwDistance, M, N, similarity * 100.0f);
         
         return similarity;
     }
 
-    // ±È½ÏÊµÊ±¶¯×÷»º³åÇøÓë±ê×¼¶¯×÷
+    // æ¯”è¾ƒå®æ—¶åŠ¨ä½œç¼“å†²åŒºä¸æ ‡å‡†åŠ¨ä½œ
     float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate) {
         const auto& realDeque = buffer.getFrames();
         const auto& templateFrames = actionTemplate.getFrames();
 
         if (realDeque.empty() || templateFrames.empty()) {
-            LOG_E("ÊµÊ±¶¯×÷»òÄ£°å¶¯×÷Îª¿Õ");
+            LOG_E("Real action or template action is empty");
             return 0.0f;
         }
 
@@ -263,7 +263,7 @@ namespace kfc {
         return similarity;
     }
 
-    // Òì²½¶¯×÷±È½Ï
+    // å¼‚æ­¥åŠ¨ä½œæ¯”è¾ƒ
     std::future<float> compareActionAsync(const ActionBuffer& buffer) {
         return std::async(std::launch::async, [&]() {
             std::lock_guard<std::mutex> lock(templateMutex);

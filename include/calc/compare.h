@@ -8,50 +8,50 @@
 #include <limits>
 #include "serialize.h"
 
-#include <Eigen/Dense> // ÓÃÓÚ»Ø¹é·ÖÎö
+#include <Eigen/Dense> // ç”¨äºå›å½’åˆ†æ
 
 namespace kfc {
 
 #if defined(USE_LINEAR_REGRESSION)
 
-    // ¼ÆËãÒ»×éÎ»ÖÃÊı¾İµÄÏßĞÔ»Ø¹éÎó²î
+    // è®¡ç®—ä¸€ç»„ä½ç½®æ•°æ®çš„çº¿æ€§å›å½’è¯¯å·®
     float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
-    // ±È½ÏÁ½¸ö¶¯×÷Ö¡µÄÏàËÆ¶È
+    // æ¯”è¾ƒä¸¤ä¸ªåŠ¨ä½œå¸§çš„ç›¸ä¼¼åº¦
     float compareFrames(const kf::FrameData& realFrame, const kf::FrameData& templateFrame);
-    // ±È½ÏÊµÊ±¶¯×÷»º³åÇøÓë±ê×¼¶¯×÷
+    // æ¯”è¾ƒå®æ—¶åŠ¨ä½œç¼“å†²åŒºä¸æ ‡å‡†åŠ¨ä½œ
     float compareActionBuffer(const kf::ActionBuffer& buffer, const ActionTemplate& actionTemplate);
-    // Òì²½±È½Ï¶¯×÷
+    // å¼‚æ­¥æ¯”è¾ƒåŠ¨ä½œ
     std::future<float> compareActionAsync(const kf::ActionBuffer& buffer);
 
 #elif defined(USE_DTW)
-    // ½«ÊäÈëĞŞ¸ÄÎª¸üÍ¨ÓÃµÄ µ¥Î¬ÏòÁ¿ÊäÈë£¬±£ÁôÏßĞÔ»Ø¹éÎó²î¼ÆËãµÄÂß¼­¡£
+    // å°†è¾“å…¥ä¿®æ”¹ä¸ºæ›´é€šç”¨çš„ å•ç»´å‘é‡è¾“å…¥ï¼Œä¿ç•™çº¿æ€§å›å½’è¯¯å·®è®¡ç®—çš„é€»è¾‘ã€‚
     // float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
 
-    // ±È½ÏÁ½¸ö¶¯×÷Ö¡
+    // æ¯”è¾ƒä¸¤ä¸ªåŠ¨ä½œå¸§
     float compareFrames(const FrameData& realFrame, const FrameData& templateFrame);
 
-    // // Ê¹ÓÃ Eigen ¼ÓËÙµÄ DTW Ëã·¨
-    // ½«»º³åÇøÓëÄ£°å¶¯×÷ÖĞµÄÃ¿Ò»Ö¡µ÷ÓÃ compareFrames ½øĞĞÖ¡¾àÀë¼ÆËã£¬²¢Ê¹ÓÃ¶¯Ì¬Ê±¼ä¹æÕû£¨DTW£©Ëã·¨Çó½â×îĞ¡´ú¼ÛÂ·¾¶¡£
+    // // ä½¿ç”¨ Eigen åŠ é€Ÿçš„ DTW ç®—æ³•
+    // å°†ç¼“å†²åŒºä¸æ¨¡æ¿åŠ¨ä½œä¸­çš„æ¯ä¸€å¸§è°ƒç”¨ compareFrames è¿›è¡Œå¸§è·ç¦»è®¡ç®—ï¼Œå¹¶ä½¿ç”¨åŠ¨æ€æ—¶é—´è§„æ•´ï¼ˆDTWï¼‰ç®—æ³•æ±‚è§£æœ€å°ä»£ä»·è·¯å¾„ã€‚
     float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames);
 
-    // ±È½Ï¶¯×÷»º³åÇøÓë±ê×¼Ä£°å
+    // æ¯”è¾ƒåŠ¨ä½œç¼“å†²åŒºä¸æ ‡å‡†æ¨¡æ¿
     float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate);
 
-    // Òì²½¶¯×÷±È½Ï
+    // å¼‚æ­¥åŠ¨ä½œæ¯”è¾ƒ
     std::future<float> compareActionAsync(const ActionBuffer& buffer);
 
 #else
 
-    // ¼ÆËãÁ½¸ö¹Ø½ÚÊı¾İµÄ¾àÀë
+    // è®¡ç®—ä¸¤ä¸ªå…³èŠ‚æ•°æ®çš„è·ç¦»
     float calculateJointDistance(const kf::JointData& a, const kf::JointData& b);
 
-    // ±È½ÏÁ½¸ö¶¯×÷Ö¡µÄÏàËÆ¶È
+    // æ¯”è¾ƒä¸¤ä¸ªåŠ¨ä½œå¸§çš„ç›¸ä¼¼åº¦
     float compareFrames(const kf::FrameData& realFrame, const kf::FrameData& templateFrame);
 
-    // ±È½ÏÊµÊ±¶¯×÷»º³åÇøÓë±ê×¼¶¯×÷
+    // æ¯”è¾ƒå®æ—¶åŠ¨ä½œç¼“å†²åŒºä¸æ ‡å‡†åŠ¨ä½œ
     float compareActionBuffer(const kf::ActionBuffer& buffer, const ActionTemplate& actionTemplate);
 
-    // Òì²½±È½Ï¶¯×÷
+    // å¼‚æ­¥æ¯”è¾ƒåŠ¨ä½œ
     std::future<float> compareActionAsync(const kf::ActionBuffer& buffer);
 
 #endif
