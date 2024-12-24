@@ -5,7 +5,8 @@
 //------------------------------------------------------------------------------
 
 #include "samples/BodyBasics.h"
-//#pragma comment(lib, "Dwrite.lib")
+#pragma comment(lib, "Comctl32.lib")
+#pragma comment(lib, "Dwrite.lib")
 
 static const float c_JointThickness = 3.0f;
 static const float c_TrackedBoneThickness = 6.0f;
@@ -268,7 +269,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         config.windowHeight - topMargin - padding,  // 考虑上下边距
         hWndApp,
         (HMENU)IDC_VIDEOVIEW,
-        hInstance,
+        GetModuleHandle(NULL),
         NULL
     );
 
@@ -276,6 +277,9 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         LOG_E("Failed to create video window");
         return 0;
     }
+
+    // 子类化视频窗口以处理消息
+    SetWindowSubclass(hWndVideo, VideoSubclassProc, 0, 0);
 
     // 调整主窗口大小以适应内容
     RECT windowRect = { 0, 0, config.windowWidth, config.windowHeight };
@@ -555,6 +559,44 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
                 return 0;
             }
             break;
+
+        case WM_CREATE:
+            {
+                // 创建用于D2D绘制的子窗口
+                const auto& config = kfc::Config::getInstance();
+                const int padding = 10;  // 窗口边距
+                const int topMargin = 50;  // 顶部边距
+                
+                WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
+                wc.lpfnWndProc = DefWindowProc;
+                wc.hInstance = GetModuleHandle(NULL);
+                wc.lpszClassName = L"VideoViewClass";
+                wc.style = CS_VREDRAW | CS_HREDRAW;
+                RegisterClassEx(&wc);
+
+                HWND hWndVideo = CreateWindowExW(
+                    0,
+                    L"VideoViewClass",
+                    NULL,
+                    WS_CHILD | WS_VISIBLE | SS_BLACKRECT,
+                    padding, topMargin,
+                    config.windowWidth - 2 * padding,  // 考虑边距
+                    config.windowHeight - topMargin - padding,  // 考虑上下边距
+                    hWnd,
+                    (HMENU)IDC_VIDEOVIEW,
+                    GetModuleHandle(NULL),
+                    NULL
+                );
+
+                // 子类化视频窗口以处理消息
+                SetWindowSubclass(hWndVideo, VideoSubclassProc, 0, 0);
+
+                if (!hWndVideo) {
+                    LOG_E("Failed to create video window");
+                    return 0;
+                }
+            }
+            return 0;
     }
 
     return FALSE;
@@ -744,7 +786,9 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                     float lastSimilarity = similarityFuture.get();
                                     if (std::abs(lastSimilarity - m_fCurrentSimilarity.load()) > 0.01f) {
                                         m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
-                                        InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), NULL, FALSE);
+                                        // 只重绘相似度显示区域
+                                        RECT rcSimilarity = { 5, 45, 305, 85 };
+                                        InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rcSimilarity, FALSE);
                                     }
                                 }
 
@@ -1321,4 +1365,18 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
         1.0f,
         D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
     );
+}
+
+// 视频窗口的子类处理过程
+LRESULT CALLBACK VideoSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+                                  UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+    switch (uMsg)
+    {
+        case WM_ERASEBKGND:
+            return TRUE;  // 阻止背景擦除
+
+        default:
+            return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    }
 }

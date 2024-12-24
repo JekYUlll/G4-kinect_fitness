@@ -8,6 +8,7 @@
 #define BODYBASIC_H
 
 #include <Windows.h>
+#include <CommCtrl.h>
 #include <thread>
 #include <vector>
 #include <string>
@@ -24,6 +25,10 @@
 #include "ui/KFui.h"
 #include "calc/serialize.h"
 #include "calc/compare.h"
+
+// 声明视频窗口子类处理过程
+LRESULT CALLBACK VideoSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+                                  UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
 class Application
 {
