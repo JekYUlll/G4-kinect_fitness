@@ -153,12 +153,12 @@ private:
     float c_BoneThickness; // 标准动作骨骼厚度
     
 
-    std::string m_recordFilePath;   // 添加文件路径成员
+    std::string             m_recordFilePath;   // 添加文件路径成员
 
-    std::atomic<float> m_fCurrentSimilarity;
-    std::mutex m_similarityMutex;
-    std::condition_variable m_similarityCV;
-    bool m_similarityUpdated;
+    std::atomic<float>      m_fCurrentSimilarity;     // 原子变量用于线程安全的相似度更新
+    std::mutex             m_similarityMutex;        // 相似度互斥锁
+    std::condition_variable m_similarityCV;          // 相似度条件变量
+    bool                   m_similarityUpdated;      // 相似度更新标志
 
     /// <summary>
     /// Main processing function
@@ -240,6 +240,7 @@ private:
     /// <param name="joint0">one joint of the bone to draw</param>
     /// <param name="joint1">other joint of the bone to draw</param>
     void                    DrawBone(const Joint* pJoints, const D2D1_POINT_2F* pJointPoints, JointType joint0, JointType joint1);
+
 };
 
 

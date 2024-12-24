@@ -130,6 +130,13 @@ bool InitConfig() {
           config.standardActionPath,
           config.speedWeight, config.minSpeedRatio, config.maxSpeedRatio,
           config.minSpeedPenalty, config.dtwBandwidthRatio, config.similarityThreshold);
+
+    try {
+        g_actionTemplate = std::make_unique<ActionTemplate>(Config::getInstance().standardActionPath);
+    }
+    catch (const std::exception& e) {
+        LOG_E("Load standard action: {}", e.what());
+    }
     
     return true;
 }

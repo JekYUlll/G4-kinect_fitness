@@ -43,6 +43,12 @@ bool SaveFrame(const std::string& filename, const FrameData& frame, bool append 
 // 从文件读取一帧骨骼数据
 bool LoadFrame(const std::string& filename, FrameData& frame);
 
+//// 序列化一帧的骨骼数据到文件
+//bool SaveFrameToFile(const std::string& filename, const FrameData& frame);
+//
+//// 从文件读取一帧骨骼数据
+//bool LoadFrameFromFile(const std::string& filename, FrameData& frame);
+
 class ActionBuffer {
 private:
     std::deque<FrameData> _buffer; // 使用 std::deque 维护缓冲区

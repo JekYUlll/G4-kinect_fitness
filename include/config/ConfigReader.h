@@ -8,6 +8,8 @@
 #include <sstream>
 #include <map>
 #include <algorithm>
+
+#include "calc/serialize.h"
 #include "KFcommon.h"
 
 namespace kfc {
@@ -40,7 +42,7 @@ private:
         windowWidth(800),
         windowHeight(600),
         frameRate(30),
-        recordInterval(250 * 10000), // 250ms default
+        recordInterval(33 * 10000),
         speedWeight(0.3f),
         minSpeedRatio(0.6f),
         maxSpeedRatio(1.4f),

@@ -53,28 +53,11 @@ Application::Application() :
     m_similarityUpdated(false)
 {
     LARGE_INTEGER qpf = {0};
-    if (QueryPerformanceFrequency(&qpf))
-    {
-        m_fFreq = double(qpf.QuadPart);
+    if (QueryPerformanceFrequency(&qpf)) {
+        m_fFreq = static_cast<double>(qpf.QuadPart);
     }
 
-    /*HRESULT hr = DWriteCreateFactory(
-        DWRITE_FACTORY_TYPE_SHARED,
-        __uuidof(IDWriteFactory),
-        reinterpret_cast<IUnknown**>(&m_pDWriteFactory)
-    );
-    if (FAILED(hr)) {
-        LOG_E("Failed to create DirectWrite Factory");
-    }*/
-    /*if (SUCCEEDED(hr) && m_pRenderTarget && !m_pBrush) {
-        hr = m_pRenderTarget->CreateSolidColorBrush(
-            D2D1::ColorF(D2D1::ColorF::Green), &m_pBrush);
-        if (FAILED(hr)) {
-            LOG_E("Failed to create solid color brush");
-        }
-    }*/
-
-    // 创建颜色缓冲区
+    // 分配颜色帧缓冲区
     m_pColorRGBX = new RGBQUAD[cColorWidth * cColorHeight];
 }
   
@@ -96,22 +79,19 @@ Application::~Application()
     SafeRelease(m_pCoordinateMapper);
 
     // close the Kinect Sensor
-    if (m_pKinectSensor)
-    {
+    if (m_pKinectSensor) {
         m_pKinectSensor->Close();
     }
 
     SafeRelease(m_pKinectSensor);
 
-    // 清理颜色相关资源
-    if (m_pColorRenderer)
-    {
+    // 清理颜色相关资源 {
+    if (m_pColorRenderer) {
         delete m_pColorRenderer;
         m_pColorRenderer = NULL;
     }
 
-    if (m_pColorRGBX)
-    {
+    if (m_pColorRGBX) {
         delete[] m_pColorRGBX;
         m_pColorRGBX = NULL;
     }
@@ -174,7 +154,7 @@ void Application::HandlePaint()
                 WCHAR similarityText[64];
                 swprintf_s(similarityText, L"Similarity: %.2f%%", currentSimilarity * 100.0f);
                 
-                // 创��半透明黑色背景
+                // 创建半透明黑色背景
                 ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
                 hr = m_pRenderTarget->CreateSolidColorBrush(
                     D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
@@ -342,8 +322,8 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
 /// </summary>
 void Application::Update()
 {
-    if (!m_pColorFrameReader || !m_pBodyFrameReader)
-    {
+    if (!m_pColorFrameReader || !m_pBodyFrameReader) {
+        LOG_E("Update return");
         return;
     }
 
@@ -399,8 +379,7 @@ void Application::Update()
             }
         }
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             // 先绘制颜色帧
             ProcessColor(nTime, pBuffer, nWidth, nHeight);
         }
@@ -615,12 +594,10 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
     static INT64 lastCompareTime = 0;                         // 上次比较时间戳
     static bool needsUpdate = false;                          // 是否需要更新显示
 
-    const auto& config = kfc::Config::getInstance();
-
     // 清理已完成的保存任务
     saveFutures.erase(
         std::remove_if(
-            saveFutures.begin(), 
+            saveFutures.begin(),
             saveFutures.end(),
             [](std::future<void>& f) {
                 return f.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
@@ -629,11 +606,15 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
         saveFutures.end()
     );
 
-    // 首先绘制标准动作（如果存在且正在计算相似度）
-    if (m_isCalcing && kfc::g_actionTemplate) {
+    // 首先绘制标准动作（如果正在计算相似度）
+    if (m_isCalcing) {
+        if (!kfc::g_actionTemplate) {
+            LOG_E("no actionTemplate");
+            return;
+        }
         std::lock_guard<std::mutex> lock(kfc::templateMutex);
         const auto& frames = kfc::g_actionTemplate->getFrames();
-        
+
         // 只有在播放状态时才显示标准动作
         if (!frames.empty() && m_isPlayingTemplate) {
             // 初始化播放起点时间
@@ -643,10 +624,10 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
             // 使用实际的时间戳差值来计算当前帧
             INT64 elapsedTime = nTime - m_playbackStartTime;
-            
+
             // 获取第一帧和最后一帧的时间戳差值
             INT64 totalDuration = frames.back().timestamp - frames.front().timestamp;
-            
+
             // 计算当前应该播放的帧
             size_t frameIndex = 0;
             if (totalDuration > 0) {
@@ -654,17 +635,17 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                 double progress = static_cast<double>(elapsedTime % totalDuration) / totalDuration;
                 frameIndex = static_cast<size_t>(progress * (frames.size() - 1));
             }
-            
+
             const auto& templateFrame = frames[frameIndex];
-            
+
             // 准备关节点数据
             D2D1_POINT_2F templateJointPoints[JointType_Count];
-            
+
             // 将模板骨骼数据转换为屏幕坐标
             for (const auto& joint : templateFrame.joints) {
                 templateJointPoints[joint.type] = BodyToScreen(joint.position, width, height);
             }
-            
+
             // 绘制模板骨骼
             DrawTemplateBody(templateFrame.joints.data(), templateJointPoints);
         }
@@ -709,45 +690,60 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                         jointPoints[j] = BodyToScreen(joints[j].Position, width, height);
                     }
 
-                    // 如果正在录制，保存帧数据
-                    if (m_isRecording && (nTime - lastRecordedTime) >= config.recordInterval) {
-                        lastRecordedTime = nTime;
-                        saveFutures.push_back(std::async(std::launch::async, [frameData, this]() {
-                            std::lock_guard<std::mutex> lock(recordMutex);
-                            kfc::SaveFrameToFile(m_recordFilePath, frameData);
-                        }));
-                    }
+                    actionBuffer.addFrame(frameData); // 添加到动作缓冲区
 
-                    // 如果正在计算相似度，更新缓冲区并计算相似度
-                    if (m_isCalcing) {
-                        actionBuffer.addFrame(frameData);
-
-                        // 每隔一定时间计算一次相似度
-                        if ((nTime - lastCompareTime) >= config.recordInterval) {
-                            lastCompareTime = nTime;
-
-                            // 如果上一次计算已完成，启动新的计算
-                            if (!similarityFuture.valid() || 
+                    // 定期计算相似度（异步，每秒10次）
+                    // TODO: 改为从配置文件中读取
+                    const INT64 similarityInterval = 100 * 10000;  // 100ms = 1/10秒
+                    if (nTime - lastCompareTime >= similarityInterval) {
+                        lastCompareTime = nTime;
+                        if (kfc::g_actionTemplate) {
+                            // 检查上一次的计算是否完成
+                            if (!similarityFuture.valid() ||
                                 similarityFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-                                similarityFuture = kfc::compareActionAsync(actionBuffer);
-                                needsUpdate = true;
+                                // 如果有上一次的结果，先获取它
+                                if (similarityFuture.valid()) {
+                                    float lastSimilarity = similarityFuture.get();
+                                    if (std::abs(lastSimilarity - m_fCurrentSimilarity.load()) > 0.01f) {
+                                        m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
+                                        InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), NULL, FALSE);
+                                    }
+                                }
+
+                                // 启动新的异步计算
+                                auto bufferCopy = actionBuffer;  // 创建缓冲区的副本
+                                similarityFuture = std::async(
+                                    std::launch::async,
+                                    [](const kfc::ActionBuffer& buffer) {
+                                        auto future = kfc::compareActionAsync(buffer);
+                                        return future.get();  // 等待并返回结果
+                                    },
+                                    std::move(bufferCopy)
+                                );
                             }
                         }
-
-                        // 检查并更新相似度结果
-                        if (needsUpdate && similarityFuture.valid() && 
-                            similarityFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-                            currentSimilarity = similarityFuture.get();
-                            needsUpdate = false;
-                        }
                     }
 
-                    // 绘制骨骼
+                    // 绘制骨骼和手部状态
                     DrawBody(joints, jointPoints);
+                    DrawHand(leftHandState, jointPoints[JointType_HandLeft]);
+                    DrawHand(rightHandState, jointPoints[JointType_HandRight]);
 
-                    // 绘制手部状态
-                    DrawHandState(leftHandState, jointPoints[JointType_HandLeft]);
-                    DrawHandState(rightHandState, jointPoints[JointType_HandRight]);
+                    // 序列化当前帧（异步）
+                    if (m_isRecording && !m_recordFilePath.empty() &&
+                        (nTime - lastRecordedTime >= kfc::Config::getInstance().recordInterval)) {
+                        lastRecordedTime = nTime;  // 更新上次记录时间
+
+                        // 限制并发保存任务的数量
+                        if (saveFutures.size() < 5) {  // 最多5个并发保存任务
+                            saveFutures.push_back(
+                                std::async(std::launch::async, [this, frameData]() {
+                                    std::lock_guard<std::mutex> lock(recordMutex);
+                                    kfc::SaveFrame(m_recordFilePath, frameData, true);
+                                    })
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -1287,55 +1283,4 @@ void Application::ProcessColor(INT64 nTime, RGBQUAD* pBuffer, int nWidth, int nH
         1.0f,
         D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
     );
-}
-
-// 在构造函数中初始化窗口大小
-HRESULT Application::InitializeWindow(HINSTANCE hInstance, int nCmdShow)
-{
-    const auto& config = Config::getInstance();
-
-    // Register class and create window
-    {
-        // Register window class
-        WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-        wcex.style = CS_HREDRAW | CS_VREDRAW;
-        wcex.lpfnWndProc = MessageRouter;
-        wcex.cbClsExtra = 0;
-        wcex.cbWndExtra = 0;
-        wcex.hInstance = hInstance;
-        wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP));
-        wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-        wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-        wcex.lpszMenuName = NULL;
-        wcex.lpszClassName = L"BodyBasicsClass";
-
-        if (!RegisterClassEx(&wcex))
-        {
-            return E_FAIL;
-        }
-
-        // Create window
-        m_hWnd = CreateWindow(
-            L"BodyBasicsClass",
-            L"G4-KinectFitnessCoach",
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            config.windowWidth,
-            config.windowHeight,
-            NULL,
-            NULL,
-            hInstance,
-            this
-        );
-
-        if (!m_hWnd)
-        {
-            return E_FAIL;
-        }
-
-        ShowWindow(m_hWnd, nCmdShow);
-
-        return S_OK;
-    }
 }
