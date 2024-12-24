@@ -6,6 +6,9 @@ BodyBasics-D2D/
 External/Eigen/
 External/spdlog/
 kinect_fitness/
-data/
+
 build/
 out/
+
+!data/jump.dat
+data/

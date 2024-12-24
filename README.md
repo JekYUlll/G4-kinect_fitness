@@ -3,25 +3,29 @@
 
 ---
 
-中文
----
+*Kinect Fitness Coach* 是一个基于 Kinect v2 的健身教练系统框架。简称 KFC (认真)。  
+主命名空间为`kfc`。
 
-*Kinect Fitness Coach* 是一个基于 Kinect v2 的健身教练系统。简称 KFC (认真)。
-*Kinect Fitness*，命名空间为`kf`。`
-
-默认编译环境为 Visual Studio 2022，使用 C++17 标准。
+默认编译环境为 Visual Studio 2022，使用 C++17 标准。  
+依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 10 及以上版本。
 
 #### External
+
+<a href="External/README.md">External</a>.
 
 - 窗口：  Win32 API
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
 - 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
 
+#### 算法说明
+
+见<a href="docs/README.md">此处</a>文件。
+
 #### 用法
 
-将`config.txt`放在程序可执行文件同级目录中，配置以下内容：
+将`config.txt`放在程序可执行文件同级目录中，配置以下内容（后三个参数实际未启用）：
 ```cpp
-file_path = skeleton_record_20241217_092356.dat
+file_path = data\\jump.dat
 window_width = 800
 window_height = 600
 frame_rate = 30
@@ -31,8 +35,7 @@ frame_rate = 30
 
 ---
 
-English
----
+English version <a href="README_en.md">here</a>.
 
 
 
