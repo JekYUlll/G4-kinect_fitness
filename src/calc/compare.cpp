@@ -230,18 +230,20 @@ namespace kfc {
     }
 
     // 使用 Eigen 加速的 DTW 算法
-    float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames, size_t bandWidth = 0) {
+    float computeDTW(const std::vector<FrameData>& realFrames, 
+                    const std::vector<FrameData>& templateFrames, 
+                    size_t bandWidth = 0) {
         const size_t M = realFrames.size();
         const size_t N = templateFrames.size();
-
+        
         if (M == 0 || N == 0) {
             return 0.0f;
         }
-
-        // 如果没有指定带宽，设置初始带宽为序列长度的20%
+        
+        // 如果没有指定带宽，设置初始带宽为序列长度的30%
         if (bandWidth == 0) {
             bandWidth = std::max<size_t>(
-                static_cast<size_t>(std::min<size_t>(M, N) * 0.2f), 
+                static_cast<size_t>(std::min<size_t>(M, N) * 0.3f), 
                 static_cast<size_t>(10)
             );
         }
@@ -260,7 +262,7 @@ namespace kfc {
                 similarityMatrix(i, j) = compareFrames(realFrames[i], templateFrames[j]);
             }
         }
-
+        
         // DTW 动态规划计算，带Sakoe-Chiba带约束
         for (size_t i = 1; i <= M; ++i) {
             // 计算当前行的带约束范围
@@ -274,7 +276,7 @@ namespace kfc {
                 j_start = std::max<size_t>(1, std::min<size_t>(N, static_cast<size_t>(std::ceil(expected_j - bandWidth))));
                 j_end = std::min<size_t>(N, static_cast<size_t>(std::floor(expected_j + bandWidth)));
             }
-
+            
             // 使用向量化操作计算当前行
             for (size_t j = j_start; j <= j_end; ++j) {
                 float cost = 1.0f - similarityMatrix(i-1, j-1);
@@ -291,7 +293,7 @@ namespace kfc {
                 }
             }
         }
-
+        
         // 计算相似度得分
         float dtwDistance = dtw(M, N);
         if (std::isinf(dtwDistance)) {
@@ -325,7 +327,7 @@ namespace kfc {
         
         LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, raw similarity: {:.2f}%", 
             dtwDistance, M, N, similarity * 100.0f);
-        
+            
         // 应用后处理
         return postProcessSimilarity(similarity);
     }

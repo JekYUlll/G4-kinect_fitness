@@ -144,7 +144,7 @@ void Application::HandlePaint()
     // 更新画面内容（包含了颜色帧的绘制，会自动清除背景）
     Update();
 
-    // 绘制UI信��
+    // 绘制UI信息
     if (m_isRecording || m_isCalcing) {
         // 创建文本格式（可以缓存这个对象以提高性能）
         static IDWriteTextFormat* pTextFormat = nullptr;
@@ -174,7 +174,7 @@ void Application::HandlePaint()
                 WCHAR similarityText[64];
                 swprintf_s(similarityText, L"Similarity: %.2f%%", currentSimilarity * 100.0f);
                 
-                // 创��半透明黑色背景
+                // 创建半透明黑色背景
                 ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
                 hr = m_pRenderTarget->CreateSolidColorBrush(
                     D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
@@ -409,7 +409,7 @@ void Application::Update()
     }
     SafeRelease(pColorFrame);
 
-    // 然后处理���骼帧
+    // 然后处理骨骼帧
     IBodyFrame* pBodyFrame = NULL;
     hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
     if (SUCCEEDED(hr))
@@ -553,7 +553,7 @@ HRESULT Application::InitializeDefaultSensor()
     }
 
     if (m_pKinectSensor) {
-        // ���始化 Kinect
+        // 初始化 Kinect
         hr = m_pKinectSensor->Open();
 
         if (SUCCEEDED(hr)) {
@@ -627,7 +627,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
         saveFutures.end()
     );
 
-    // 首先绘制标准动作（如果存在且正在计算相似度）
+    // 首先绘制标准动作（如果存在且正在计���相似度）
     if (m_isCalcing && kfc::g_actionTemplate) {
         std::lock_guard<std::mutex> lock(kfc::templateMutex);
         const auto& frames = kfc::g_actionTemplate->getFrames();
@@ -658,7 +658,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
             // 准备关节点数据
             D2D1_POINT_2F templateJointPoints[JointType_Count];
             
-            // 将模板骨骼数据转换为屏幕坐标
+            // 将��板骨骼数据转换为屏幕坐标
             for (const auto& joint : templateFrame.joints) {
                 templateJointPoints[joint.type] = BodyToScreen(joint.position, width, height);
             }
@@ -709,8 +709,8 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                     actionBuffer.addFrame(frameData); // 添加到动作缓冲区
 
-                    // 定期计算相似度（异步，每秒4次）
-                    const INT64 similarityInterval = 250 * 10000;  // 250ms = 1/4秒
+                    // 定期计算相似度（异步，每秒10次）
+                    const INT64 similarityInterval = 100 * 10000;  // 100ms = 1/10秒
                     if (nTime - lastCompareTime >= similarityInterval) {
                         lastCompareTime = nTime;
                         if (kfc::g_actionTemplate) {
