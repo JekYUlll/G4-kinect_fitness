@@ -32,7 +32,7 @@ namespace kfc {
 
     // // 使用 Eigen 加速的 DTW 算法
     // 将缓冲区与模板动作中的每一帧调用 compareFrames 进行帧距离计算，并使用动态时间规整（DTW）算法求解最小代价路径。
-    float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames);
+    //float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames, size_t bandWidth = 0);
 
     // 比较动作缓冲区与标准模板
     float compareActionBuffer(const ActionBuffer& buffer, const ActionTemplate& actionTemplate);
