@@ -10,7 +10,7 @@
 #include "KFcommon.h"
 #include "ui/KFui.h"
 #include "samples/BodyBasics.h"
-#include "ConfigReader.hpp"
+#include "config/ConfigReader.h"
 
 int main(int argc, char** argv)
 {
@@ -28,8 +28,7 @@ int main(int argc, char** argv)
     }
 
     kfc::Logger::Init();
-    LOG_I("Initializing G4 Kinect Fitness Platform...");
-    kfc::InitConfig(KF_CONFIG_FILE);
+    kfc::InitConfig();
 
     Application application;
     return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);

@@ -8,19 +8,12 @@
 #include <vector>
 #include <string>
 
-#include "config.h"
+#include "config/config.h"
+#include "config/ConfigReader.h"
 #include "log/KFLog.h"
 
 #define NOMINMAX
 namespace kfc {
-
-	extern std::string std_file_path;
-
-	extern int window_width;
-	extern int window_height;
-
-	// 保存间隔 -- 防止采样率太高的卡顿
-	extern INT64 recordInterval;
 
 	// 确保必要的目录存在
 	bool ensureDirectoryExists();

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "resource.h"
 
-#include "config.h"
+#include "KFcommon.h"
 #include "ui/KFui.h"
 #include "calc/serialize.h"
 #include "calc/compare.h"

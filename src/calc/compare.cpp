@@ -1,6 +1,9 @@
-#include "calc/compare.h"
 #include <Eigen/Dense>
 #include <map>
+
+#include "calc/compare.h"
+#include "config/ConfigReader.h"
+#include "KFcommon.h"
 
 namespace kfc {
     // 定义关节权重映射
@@ -254,18 +257,16 @@ namespace kfc {
 
     // 计算速度惩罚系数
     float calculateSpeedPenalty(float speedRatio) {
-        // 允许的速度比率范围
-        const float minRatio = 0.6f;
-        const float maxRatio = 1.4f;
+        const Config& config = Config::getInstance();
         
-        if (speedRatio < minRatio) {
+        if (speedRatio < config.minSpeedRatio) {
             // 速度太慢，使用平滑的惩罚函数
-            float factor = (speedRatio - minRatio) / minRatio;
-            return std::max(0.5f, 1.0f + factor);
-        } else if (speedRatio > maxRatio) {
+            float factor = (speedRatio - config.minSpeedRatio) / config.minSpeedRatio;
+            return std::max(config.minSpeedPenalty, 1.0f + factor);
+        } else if (speedRatio > config.maxSpeedRatio) {
             // 速度太快，使用平滑的惩罚函数
-            float factor = (speedRatio - maxRatio) / maxRatio;
-            return std::max(0.5f, 1.0f - factor);
+            float factor = (speedRatio - config.maxSpeedRatio) / config.maxSpeedRatio;
+            return std::max(config.minSpeedPenalty, 1.0f - factor);
         }
         
         return 1.0f;  // 速度在合理范围内，不惩罚
@@ -285,12 +286,22 @@ namespace kfc {
     float computeDTW(const std::vector<FrameData>& realFrames, 
                     const std::vector<FrameData>& templateFrames, 
                     size_t bandWidth = 0) {
+        const Config& config = Config::getInstance();
         const size_t M = realFrames.size();
         const size_t N = templateFrames.size();
         
         if (M == 0 || N == 0) {
             return 0.0f;
         }
+
+        // 如果没有指定带宽，使用配置的比例计算带宽
+        if (bandWidth == 0) {
+            bandWidth = std::max<size_t>(
+                static_cast<size_t>(std::min<size_t>(M, N) * config.dtwBandwidthRatio), 
+                static_cast<size_t>(10)
+            );
+        }
+        LOG_D("DTW band width: {}", bandWidth);
 
         // 计算模板序列的平均速度
         float templateTotalSpeed = 0.0f;
@@ -345,15 +356,6 @@ namespace kfc {
         // 计算速度比率和惩罚系数
         float speedRatio = templateAvgSpeed > 0.001f ? realAvgSpeed / templateAvgSpeed : 1.0f;
         float speedPenalty = calculateSpeedPenalty(speedRatio);
-
-        // 如果没有指定带宽，设置初始带宽为序列长度的30%
-        if (bandWidth == 0) {
-            bandWidth = std::max<size_t>(
-                static_cast<size_t>(std::min<size_t>(M, N) * 0.3f), 
-                static_cast<size_t>(10)
-            );
-        }
-        LOG_D("DTW band width: {}", bandWidth);
 
         // 使用 Eigen 矩阵存储 DTW 计算结果，使用 RowMajor 布局以提高缓存命中率
         using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -434,8 +436,9 @@ namespace kfc {
         LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, raw similarity: {:.2f}%, speed ratio: {:.2f}, penalty: {:.2f}", 
             dtwDistance, M, N, similarity * 100.0f, speedRatio, speedPenalty);
             
-        // 应用速度惩罚和后处理
-        return postProcessSimilarity(similarity * speedPenalty);
+        // 使用配置的权重混合DTW相似度和速度惩罚
+        float weightedSimilarity = similarity * (1.0f - config.speedWeight + config.speedWeight * speedPenalty);
+        return postProcessSimilarity(weightedSimilarity);
     }
 
     // 比较实时动作缓冲区与标准动作

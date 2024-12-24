@@ -2,10 +2,6 @@
 #include <filesystem>
 
 namespace kfc {
-	std::string std_file_path = ""; // 标准动作文件路径
-	int window_width = 800;
-	int window_height = 600;
-	INT64 recordInterval = 33; // ~30fps
 
 	// 确保录制目录存在
 	bool ensureDirectoryExists() {

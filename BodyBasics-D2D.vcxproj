@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\calc\compare.cpp" />
+    <ClCompile Include="src\config\ConfigReader.cpp" />
     <ClCompile Include="src\KFcommon.cpp" />
     <ClCompile Include="src\samples\BodyBasics.cpp" />
     <ClCompile Include="src\log\KFLog.cpp" />
@@ -345,8 +346,8 @@
     <ClInclude Include="C:\Users\JekYUlll\Desktop\eigen-3.4.0\Eigen\src\UmfPackSupport\UmfPackSupport.h" />
     <ClInclude Include="include\calc\compare.h" />
     <ClInclude Include="include\calc\serialize.h" />
-    <ClInclude Include="include\config.h" />
-    <ClInclude Include="include\ConfigReader.hpp" />
+    <ClInclude Include="include\config\config.h" />
+    <ClInclude Include="include\config\ConfigReader.h" />
     <ClInclude Include="include\samples\BodyBasics.h" />
     <ClInclude Include="include\log\KFLog.h" />
     <ClInclude Include="include\KFcommon.h" />
