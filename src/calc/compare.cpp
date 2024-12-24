@@ -199,6 +199,36 @@ namespace kfc {
         return totalWeightedSimilarity / totalWeight;
     }
 
+    // 相似度后处理函数，使结果分布更加均匀
+    float postProcessSimilarity(float rawSimilarity, float sensitivity = 1.2f) {
+        // 如果原始相似度太低，直接返回更低的值
+        if (rawSimilarity < 0.2f) {
+            return rawSimilarity * 0.3f;  // 进一步降低很差的匹配
+        }
+        
+        // 将相似度从[0.2,1]映射到[-3,3]的范围内
+        float x = (rawSimilarity - 0.6f) * 6.0f;
+        
+        // 使用sigmoid函数进行S型映射
+        float processed = 1.0f / (1.0f + std::exp(-x * sensitivity));
+        
+        // 将结果映射到[0.1,0.9]区间，保持合理的分布
+        processed = 0.1f + processed * 0.8f;
+        
+        // 对结果进行指数变换，增加区分度
+        processed = std::pow(processed, 1.2f);
+        
+        // 对高相似度进行额外的惩罚
+        if (processed > 0.75f) {
+            processed = 0.75f + (processed - 0.75f) * 0.4f;
+        }
+        
+        LOG_D("Raw similarity: {:.2f}%, Processed: {:.2f}%", 
+            rawSimilarity * 100.0f, processed * 100.0f);
+            
+        return processed;
+    }
+
     // 使用 Eigen 加速的 DTW 算法
     float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames, size_t bandWidth = 0) {
         const size_t M = realFrames.size();
@@ -293,10 +323,11 @@ namespace kfc {
         
         float similarity = 1.0f / (1.0f + dtwDistance / std::max(M, N));
         
-        LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, similarity: {:.2f}%", 
+        LOG_D("DTW distance: {:.2f}, sequence length: {} vs {}, raw similarity: {:.2f}%", 
             dtwDistance, M, N, similarity * 100.0f);
         
-        return similarity;
+        // 应用后处理
+        return postProcessSimilarity(similarity);
     }
 
     // 比较实时动作缓冲区与标准动作
