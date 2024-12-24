@@ -75,10 +75,23 @@ namespace kfc {
         return Vector3d(p.X, p.Y, p.Z);
     }
 
+    // 计算归一化的骨骼向量
+    static Vector3d getNormalizedBoneVector(const CameraSpacePoint& joint1, 
+                                          const CameraSpacePoint& joint2) {
+        Vector3d boneVector = toEigenVector(joint2) - toEigenVector(joint1);
+        float length = boneVector.norm();
+        return length > 1e-6f ? boneVector.normalized() : Vector3d::Zero();
+    }
+
     float calculateAngle(const Vector3d& v1, const Vector3d& v2) {
         float cosAngle = v1.normalized().dot(v2.normalized());
         cosAngle = std::min(1.0f, std::max(-1.0f, cosAngle));
         return std::acos(cosAngle);
+    }
+
+    // 计算角度相似度，使用可配置的高斯核带宽
+    float calculateAngleSimilarity(float angle, float sigma = 0.8f) {
+        return std::exp(-angle * angle / (2.0f * sigma * sigma));
     }
 
     Vector3d calculateRelativePosition(const CameraSpacePoint& joint, 
@@ -89,7 +102,7 @@ namespace kfc {
         if (spineLength < 1e-6f) return Vector3d::Zero();
         
         Vector3d relativePos = toEigenVector(joint) - toEigenVector(spineBase);
-        return relativePos / spineLength;
+        return relativePos / spineLength;  // 使用脊柱长度归一化
     }
 
     // 计算两帧之间的相似度
@@ -97,33 +110,6 @@ namespace kfc {
         if (realFrame.joints.size() != templateFrame.joints.size()) {
             return 0.0f;
         }
-
-        /* 原始的基于欧氏距离的比较方法（注释保留）
-        float totalWeightedSimilarity = 0.0f;
-        float totalWeight = 0.0f;
-        size_t jointCount = realFrame.joints.size();
-
-        for (size_t i = 0; i < jointCount; ++i) {
-            const auto& jointReal = realFrame.joints[i];
-            const auto& jointTemplate = templateFrame.joints[i];
-
-            // 获取关节权重，如果没有定义则使用默认权重1.0
-            float weight = 1.0f;
-            auto it = jointWeights.find(jointReal.type);
-            if (it != jointWeights.end()) {
-                weight = it->second;
-            }
-
-            // 只有当两个关节都被追踪时才计算相似度
-            if (jointReal.trackingState == TrackingState_Tracked && 
-                jointTemplate.trackingState == TrackingState_Tracked) {
-                float distance = calculateJointDistance(jointReal.position, jointTemplate.position);
-                float similarity = std::exp(-distance * distance / 0.5f);
-                totalWeightedSimilarity += similarity * weight;
-                totalWeight += weight;
-            }
-        }
-        */
 
         float totalWeightedSimilarity = 0.0f;
         float totalWeight = 0.0f;
@@ -140,11 +126,21 @@ namespace kfc {
                 joint1Template.trackingState == TrackingState_Tracked && 
                 joint2Template.trackingState == TrackingState_Tracked) {
                 
-                Vector3d boneVectorReal = toEigenVector(joint2Real.position) - toEigenVector(joint1Real.position);
-                Vector3d boneVectorTemplate = toEigenVector(joint2Template.position) - toEigenVector(joint1Template.position);
+                // 使用归一化的骨骼向量计算角度
+                Vector3d boneVectorReal = getNormalizedBoneVector(joint1Real.position, joint2Real.position);
+                Vector3d boneVectorTemplate = getNormalizedBoneVector(joint1Template.position, joint2Template.position);
                 
                 float angle = calculateAngle(boneVectorReal, boneVectorTemplate);
-                float angleSimilarity = std::exp(-angle * angle / 1.0f);
+                
+                // 根据骨骼类型选择不同的高斯核带宽
+                float sigma = 0.8f;  // 默认带宽
+                if (bone.first == JointType_SpineBase || bone.first == JointType_SpineMid) {
+                    sigma = 0.6f;  // 躯干部分使用更小的带宽，要求更精确
+                } else if (bone.first == JointType_HandRight || bone.first == JointType_HandLeft) {
+                    sigma = 1.0f;  // 手部使用更大的带宽，允许更大的变化
+                }
+                
+                float angleSimilarity = calculateAngleSimilarity(angle, sigma);
 
                 float weight = 1.0f;
                 auto it = jointWeights.find(bone.second);
@@ -221,22 +217,16 @@ namespace kfc {
         }
         LOG_D("DTW band width: {}", bandWidth);
 
-        // 使用 Eigen 矩阵存储 DTW 计算结果
-        Eigen::MatrixXf dtw = Eigen::MatrixXf::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
+        // 使用 Eigen 矩阵存储 DTW 计算结果，使用 RowMajor 布局以提高缓存命中率
+        using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        Matrix dtw = Matrix::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
         dtw(0, 0) = 0.0f;
 
-        // 初始化第一行和第一列（在带宽范围内）
-        for (size_t i = 1; i <= std::min<size_t>(M, bandWidth); ++i) {
-            dtw(i, 0) = std::numeric_limits<float>::infinity();
-        }
-        for (size_t j = 1; j <= std::min<size_t>(N, bandWidth); ++j) {
-            dtw(0, j) = std::numeric_limits<float>::infinity();
-        }
-
-        // 预计算所有帧对的相似度
-        Eigen::MatrixXf similarityMatrix(M, N);
-        for (size_t i = 0; i < M; ++i) {
-            for (size_t j = 0; j < N; ++j) {
+        // 预计算所有帧对的相似度，同样使用 RowMajor 布局
+        Matrix similarityMatrix = Matrix::Zero(M, N);
+        #pragma omp parallel for collapse(2) if(M * N > 1000)
+        for (int i = 0; i < static_cast<int>(M); ++i) {
+            for (int j = 0; j < static_cast<int>(N); ++j) {
                 similarityMatrix(i, j) = compareFrames(realFrames[i], templateFrames[j]);
             }
         }
@@ -255,6 +245,7 @@ namespace kfc {
                 j_end = std::min<size_t>(N, static_cast<size_t>(std::floor(expected_j + bandWidth)));
             }
 
+            // 使用向量化操作计算当前行
             for (size_t j = j_start; j <= j_end; ++j) {
                 float cost = 1.0f - similarityMatrix(i-1, j-1);
                 float min_prev = std::min({
@@ -264,8 +255,7 @@ namespace kfc {
                 });
                 
                 if (std::isinf(min_prev)) {
-                    // 如果所有前导状态都是无穷大，使用累积代价
-                    dtw(i, j) = cost * i;
+                    dtw(i, j) = cost * static_cast<float>(i);
                 } else {
                     dtw(i, j) = cost + min_prev;
                 }
@@ -278,17 +268,13 @@ namespace kfc {
             // 如果带宽已经接近序列长度的一半，尝试使用最近的有效值
             if (bandWidth >= std::min<size_t>(M, N) / 3) {
                 float minDistance = std::numeric_limits<float>::infinity();
-                // 在最后一行和最后一列中寻找最小的有效距离
-                for (size_t i = M-5; i <= M; ++i) {
-                    for (size_t j = N-5; j <= N; ++j) {
-                        if (!std::isinf(dtw(i, j))) {
-                            minDistance = std::min(minDistance, dtw(i, j));
-                        }
-                    }
-                }
                 
-                if (!std::isinf(minDistance)) {
-                    dtwDistance = minDistance * (static_cast<float>(M + N) / static_cast<float>(M + N - 5));
+                // 在最后几行和列中寻找最小的有效距离
+                Eigen::Matrix<float, 5, 5> endRegion = dtw.block(M-4, N-4, 5, 5);
+                float validMin = endRegion.array().isFinite().select(endRegion, std::numeric_limits<float>::infinity()).minCoeff();
+                
+                if (!std::isinf(validMin)) {
+                    dtwDistance = validMin * (static_cast<float>(M + N) / static_cast<float>(M + N - 5));
                     LOG_W("Using approximate DTW distance: {:.2f}", dtwDistance);
                 } else if (bandWidth >= std::min<size_t>(M, N) / 2) {
                     LOG_W("DTW path not found even with wide band, sequences might be too different");
