@@ -1,4 +1,4 @@
-﻿#include "calc/compare.h"
+#include "calc/compare.h"
 #include <Eigen/Dense>
 #include <map>
 
@@ -68,7 +68,7 @@ namespace kfc {
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // 使用 Eigen 优化���向量计算
+    // 使用 Eigen 优化向量计算
     using Vector3d = Eigen::Vector3f;
 
     Vector3d toEigenVector(const CameraSpacePoint& p) {

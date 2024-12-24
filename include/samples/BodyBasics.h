@@ -84,6 +84,8 @@ public:
     inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
     [[nodiscard]] inline bool IsCalcing() const { return m_isCalcing; }
 
+    inline void ClearRecordFilePath() { m_recordFilePath.clear(); }
+
     [[nodiscard]] inline ID2D1HwndRenderTarget* GetRenderTarget() const { return m_pRenderTarget; }
 
     [[nodiscard]] inline bool IsPlayingTemplate() const { return m_isPlayingTemplate; }

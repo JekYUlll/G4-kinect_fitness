@@ -171,6 +171,7 @@ namespace kfc {
                     LOG_I("Start Recording...");
                 } else {
                     pApp->SetRecording(false);
+                    pApp->ClearRecordFilePath();  // 清空文件路径
                     SetWindowText(hRecordButton, L"Record");
                     LOG_I("Finish Recording...");
                 }

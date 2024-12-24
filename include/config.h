@@ -10,7 +10,7 @@ namespace kfc {
 
 // 路径相关定义
 #define KF_DATA_DIR "data"          // 录制文件存储目录
-#define KF_CONFIG_FILE "config.txt" // 配置文件在根目录
+#define KF_CONFIG_FILE "data\\config.txt" // 配置文件路径
 
 // 算法选择
 //#define USE_LINEAR_REGRESSION
