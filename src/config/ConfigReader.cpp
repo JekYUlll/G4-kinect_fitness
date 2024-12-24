@@ -1,8 +1,15 @@
 #include "config/ConfigReader.h"
+#include "log/KFLog.h"
+#include "calc/serialize.h"
+#include <fstream>
+#include <sstream>
+#include <map>
+#include <algorithm>
+#include <cstdint>
 
 namespace kfc {
 
-    bool ReadConfig(const std::string& filename, std::map<std::string, std::string>& config) {
+bool Config::Read(const std::string& filename, std::map<std::string, std::string>& config) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         LOG_E("Failed to open config file: {}", filename);
@@ -59,11 +66,11 @@ namespace kfc {
     return true;
 }
 
-bool InitConfig(const std::string& configPath) {
-    auto& config = Config::getInstance();
+bool Config::Init(const std::string& configPath) {
+    auto& config = getInstance();
     std::map<std::string, std::string> configMap;
     
-    if (!ReadConfig(configPath, configMap)) {
+    if (!Read(configPath, configMap)) {
         LOG_E("Failed to read config file");
         return false;
     }
@@ -87,7 +94,7 @@ bool InitConfig(const std::string& configPath) {
                 config.compareFPS = std::stoi(value);
                 break;
             case "action.standardPath"_hash:
-                config.standardActionPath = value;
+                config.standardPath = value;
                 break;
             case "action.bufferSize"_hash:
                 config.actionBufferSize = std::stoi(value);
@@ -142,12 +149,12 @@ bool InitConfig(const std::string& configPath) {
           "bandWidth={:.2f}, threshold={:.2f}",
           config.windowWidth, config.windowHeight,
           config.displayFPS, config.recordFPS, config.compareFPS,
-          config.standardActionPath,
+          config.standardPath,
           config.speedWeight, config.minSpeedRatio, config.maxSpeedRatio,
           config.minSpeedPenalty, config.dtwBandwidthRatio, config.similarityThreshold);
 
     try {
-        g_actionTemplate = std::make_unique<ActionTemplate>(config.standardActionPath);
+        g_actionTemplate = std::make_unique<ActionTemplate>(config.standardPath);
     }
     catch (const std::exception& e) {
         LOG_E("Load standard action: {}", e.what());
@@ -156,5 +163,5 @@ bool InitConfig(const std::string& configPath) {
     return true;
 }
 
-}
+} // namespace kfc
 

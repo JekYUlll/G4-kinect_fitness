@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     }
 
     kfc::Logger::Init();
-    kfc::InitConfig(KFC_CONFIG_FILE);
+    kfc::Config::Init(KFC_CONFIG_FILE);
 
     Application application;
     return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);

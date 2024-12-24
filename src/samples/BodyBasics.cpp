@@ -254,13 +254,18 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
     }
 
     // 创建用于D2D绘制的子窗口
+    const auto& config = kfc::Config::getInstance();
+    const int padding = 10;  // 窗口边距
+    const int topMargin = 50;  // 顶部边距
+    
     HWND hWndVideo = CreateWindowExW(
         0,
         L"STATIC",
         NULL,
         WS_CHILD | WS_VISIBLE | SS_BLACKRECT,
-        10, 50,
-        780, 500,
+        padding, topMargin,
+        config.windowWidth - 2 * padding,  // 考虑边距
+        config.windowHeight - topMargin - padding,  // 考虑上下边距
         hWndApp,
         (HMENU)IDC_VIDEOVIEW,
         hInstance,
@@ -272,6 +277,19 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
         return 0;
     }
 
+    // 调整主窗口大小以适应内容
+    RECT windowRect = { 0, 0, config.windowWidth, config.windowHeight };
+    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+    
+    SetWindowPos(
+        hWndApp,
+        NULL,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        windowRect.right - windowRect.left,
+        windowRect.bottom - windowRect.top,
+        SWP_NOMOVE | SWP_NOZORDER
+    );
+
     // 显示窗口
     ShowWindow(hWndApp, nCmdShow);
     UpdateWindow(hWndApp);
@@ -281,7 +299,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
     QueryPerformanceFrequency(&freq);
     LARGE_INTEGER lastTime;
     QueryPerformanceCounter(&lastTime);
-    const double frameTime = 1.0 / 60.0;
+    const double frameTime = 1.0 / kfc::Config::getInstance().displayFPS;  // 使用配置的显示帧率
 
     // 主消息循环
     while (WM_QUIT != msg.message) {
@@ -306,7 +324,7 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
             HandlePaint();
             lastTime = currentTime;
 
-            if (deltaTime > frameTime * 3) {
+            if (deltaTime > frameTime * 3) {  // 如果延迟太大，直接跳过
                 lastTime = currentTime;
             }
         } else {
@@ -489,18 +507,40 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
             break;
 
         case WM_SIZE:
-            if (m_pRenderTarget)
             {
-                RECT rc;
-                GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rc);
-                D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+                UINT width = LOWORD(lParam);
+                UINT height = HIWORD(lParam);
                 
-                // 只有当大小真的改变时才调整
-                D2D1_SIZE_U currentSize = m_pRenderTarget->GetPixelSize();
-                if (size.width != currentSize.width || size.height != currentSize.height)
-                {
-                    m_pRenderTarget->Resize(size);
-                    InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), NULL, FALSE);
+                // 更新配置中的窗口大小
+                auto& config = kfc::Config::getInstance();
+                config.windowWidth = width;
+                config.windowHeight = height;
+                
+                // 调整视频窗口大小
+                const int padding = 10;
+                const int topMargin = 50;
+                SetWindowPos(
+                    GetDlgItem(m_hWnd, IDC_VIDEOVIEW),
+                    NULL,
+                    padding,
+                    topMargin,
+                    width - 2 * padding,
+                    height - topMargin - padding,
+                    SWP_NOZORDER
+                );
+
+                // 调整渲染目标大小
+                if (m_pRenderTarget) {
+                    RECT rc;
+                    GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rc);
+                    D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+                    
+                    // 只有当大小真的改变时才调整
+                    D2D1_SIZE_U currentSize = m_pRenderTarget->GetPixelSize();
+                    if (size.width != currentSize.width || size.height != currentSize.height) {
+                        m_pRenderTarget->Resize(size);
+                        InvalidateRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), NULL, FALSE);
+                    }
                 }
             }
             return 0;
@@ -692,10 +732,8 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                     actionBuffer.addFrame(frameData); // 添加到动作缓冲区
 
-                    // 定期计算相似度（异步，每秒10次）
-                    // TODO: 改为从配置文件中读取
-                    const INT64 similarityInterval = 100 * 10000;  // 100ms = 1/10秒
-                    if (nTime - lastCompareTime >= similarityInterval) {
+                    // 定期计算相似度
+                    if (nTime - lastCompareTime >= kfc::Config::getInstance().getCompareInterval()) {
                         lastCompareTime = nTime;
                         if (kfc::g_actionTemplate) {
                             // 检查上一次的计算是否完成
@@ -731,7 +769,7 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
 
                     // 序列化当前帧（异步）
                     if (m_isRecording && !m_recordFilePath.empty() &&
-                        (nTime - lastRecordedTime >= kfc::Config::getInstance().getRecordInterval() * 10)) {
+                        (nTime - lastRecordedTime >= kfc::Config::getInstance().getRecordInterval())) {
                         lastRecordedTime = nTime;  // 更新上次记录时间
 
                         // 限制并发保存任务的数量

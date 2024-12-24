@@ -28,7 +28,7 @@ struct Config {
     // 基础配置
     std::string dataDir;            // 数据目录
     std::string configFile;         // 配置文件路径
-    std::string standardActionPath; // 标准动作文件路径
+    std::string standardPath; // 标准动作文件路径
     int windowWidth;               // 窗口宽度
     int windowHeight;              // 窗口高度
     
@@ -53,12 +53,16 @@ struct Config {
         return instance;
     }
 
-    // 获取各种间隔时间（微秒）
-    [[nodiscard]] inline INT64 getDisplayInterval() const { return static_cast<INT64>(1000000.0 / displayFPS); }
-    [[nodiscard]] inline INT64 getRecordInterval() const { return static_cast<INT64>(1000000.0 / recordFPS); }
-    [[nodiscard]] inline INT64 getCompareInterval() const { return static_cast<INT64>(1000000.0 / compareFPS); }
+    // 获取各种间隔时间（100纳秒）
+    [[nodiscard]] inline INT64 getDisplayInterval() const { return static_cast<INT64>(10000000.0 / displayFPS); }
+    [[nodiscard]] inline INT64 getRecordInterval() const { return static_cast<INT64>(10000000.0 / recordFPS); }
+    [[nodiscard]] inline INT64 getCompareInterval() const { return static_cast<INT64>(10000000.0 / compareFPS); }
+
+    static bool Init(const std::string& configPath);
 
 private:
+    static bool Read(const std::string& filename, std::map<std::string, std::string>& config);
+
     Config() : 
         windowWidth(800),
         windowHeight(600),
@@ -77,10 +81,5 @@ private:
     Config& operator=(const Config&) = delete;
 };
 
-bool ReadConfig(const std::string& filename, std::map<std::string, std::string>& config);
-
-bool InitConfig(const std::string& configPath);
-
 } // namespace kfc
-
 #endif // CONFIG_READER_H

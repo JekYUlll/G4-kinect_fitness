@@ -508,7 +508,24 @@ namespace kfc {
     std::future<float> compareActionAsync(const ActionBuffer& buffer) {
         return std::async(std::launch::async, [&]() {
             std::lock_guard<std::mutex> lock(templateMutex);
-            return compareActionBuffer(buffer, *g_actionTemplate);
+            if (!g_actionTemplate) {
+                LOG_E("No action template loaded");
+                return 0.0f;
+            }
+
+            float similarity = compareActionBuffer(buffer, *g_actionTemplate);
+            
+            // 使用阈值进行判断并记录日志
+            const auto& config = Config::getInstance();
+            if (similarity < config.similarityThreshold) {
+                LOG_D("Similarity {:.2f} below threshold {:.2f}", 
+                      similarity * 100.0f, config.similarityThreshold * 100.0f);
+            } else {
+                LOG_D("Similarity {:.2f} above threshold {:.2f}", 
+                      similarity * 100.0f, config.similarityThreshold * 100.0f);
+            }
+            
+            return similarity;
         });
     }
 
