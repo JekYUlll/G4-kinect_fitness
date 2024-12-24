@@ -639,9 +639,19 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                 m_playbackStartTime = nTime;
             }
 
-            // 使用recordInterval来控制播放速度
+            // 使用实际的时间戳差值来计算当前帧
             INT64 elapsedTime = nTime - m_playbackStartTime;
-            size_t frameIndex = (elapsedTime / kfc::recordInterval) % frames.size();
+            
+            // 获取第一帧和最后一帧的时间戳差值
+            INT64 totalDuration = frames.back().timestamp - frames.front().timestamp;
+            
+            // 计算当前应该播放的帧
+            size_t frameIndex = 0;
+            if (totalDuration > 0) {
+                // 计算播放进度（0.0 到 1.0）
+                double progress = static_cast<double>(elapsedTime % totalDuration) / totalDuration;
+                frameIndex = static_cast<size_t>(progress * (frames.size() - 1));
+            }
             
             const auto& templateFrame = frames[frameIndex];
             
