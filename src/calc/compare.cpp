@@ -5,40 +5,40 @@
 namespace kfc {
     // 定义关节权重映射
     static const std::map<JointType, float> jointWeights = {
-        // 手部关节权重最高
-        {JointType_HandRight, 2.0f},
-        {JointType_HandLeft, 2.0f},
-        {JointType_HandTipRight, 2.0f},
-        {JointType_HandTipLeft, 2.0f},
-        {JointType_ThumbRight, 2.0f},
-        {JointType_ThumbLeft, 2.0f},
+        // 手部关节权重降低（因为捕捉不准确）
+        {JointType_HandRight, 0.5f},
+        {JointType_HandLeft, 0.5f},
+        {JointType_HandTipRight, 0.3f},
+        {JointType_HandTipLeft, 0.3f},
+        {JointType_ThumbRight, 0.3f},
+        {JointType_ThumbLeft, 0.3f},
         
-        // 手臂关节次之
-        {JointType_ElbowRight, 1.5f},
-        {JointType_ElbowLeft, 1.5f},
-        {JointType_WristRight, 1.5f},
-        {JointType_WristLeft, 1.5f},
-        {JointType_ShoulderRight, 1.5f},
-        {JointType_ShoulderLeft, 1.5f},
+        // 手臂关节权重提高
+        {JointType_ElbowRight, 2.0f},
+        {JointType_ElbowLeft, 2.0f},
+        {JointType_WristRight, 1.8f},
+        {JointType_WristLeft, 1.8f},
+        {JointType_ShoulderRight, 2.0f},
+        {JointType_ShoulderLeft, 2.0f},
         
         // 躯干关节权重适中
         {JointType_SpineShoulder, 1.2f},
         {JointType_SpineMid, 1.2f},
         {JointType_SpineBase, 1.2f},
         
-        // 腿部关节权重较低
-        {JointType_HipRight, 1.0f},
-        {JointType_HipLeft, 1.0f},
-        {JointType_KneeRight, 1.0f},
-        {JointType_KneeLeft, 1.0f},
-        {JointType_AnkleRight, 0.8f},
-        {JointType_AnkleLeft, 0.8f},
-        {JointType_FootRight, 0.8f},
-        {JointType_FootLeft, 0.8f},
+        // 腿部关节权重大幅降低
+        {JointType_HipRight, 0.2f},
+        {JointType_HipLeft, 0.2f},
+        {JointType_KneeRight, 0.2f},
+        {JointType_KneeLeft, 0.2f},
+        {JointType_AnkleRight, 0.2f},
+        {JointType_AnkleLeft, 0.2f},
+        {JointType_FootRight, 0.2f},
+        {JointType_FootLeft, 0.2f},
         
-        // 头部关节
-        {JointType_Head, 2.0f},
-        {JointType_Neck, 2.0f}
+        // 头部关节权重较高
+        {JointType_Head, 1.8f},
+        {JointType_Neck, 1.8f}
     };
 
     // 定义骨骼连接关系，用于计算相对角度
@@ -201,40 +201,41 @@ namespace kfc {
 
     // 相似度后处理函数，使结果分布更加均匀
     float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
-        static float lastProcessed = 0.0f;  // 保存上一次的处理结果
+        static float lastProcessed = 0.0f;
         
         // 如果原始相似度太低，使用平滑过渡
         if (rawSimilarity < 0.45f) {
-            float base = rawSimilarity * 0.2f;  // 进一步降低基础值
+            float base = rawSimilarity * 0.3f;
             float smoothed = lastProcessed * 0.6f + base * 0.4f;
             lastProcessed = smoothed;
             return smoothed;
         }
         
         // 先进行非线性拉伸，增加区分度
-        float stretched = std::pow(rawSimilarity, 1.2f);  // 增加指数，加大惩罚
+        float stretched = std::pow((rawSimilarity - 0.4f) * 1.5f, 1.1f);
+        stretched = std::max(0.0f, std::min(1.0f, stretched));
         
         // 将相似度映射到更大范围
-        float x = (stretched - 0.6f) * 8.0f;  // 提高中心点，降低整体输出
+        float x = (stretched - 0.4f) * 8.0f;
         
         // 使用sigmoid函数进行S型映射
         float processed = 1.0f / (1.0f + std::exp(-x * sensitivity));
         
-        // 分段线性映射，降低整体输出
-        if (processed < 0.45f) {
-            processed *= 0.35f;  // 加强低分段压缩
-        } else if (processed > 0.65f) {
-            processed = 0.65f + (processed - 0.65f) * 0.9f;  // 压缩高分段
+        // 分段线性映射，增加区分度
+        if (processed < 0.4f) {
+            processed *= 0.5f;
+        } else if (processed > 0.6f) {
+            processed = 0.6f + (processed - 0.6f) * 1.4f;
         }
         
-        // 缩小输出范围
-        processed = std::min(0.85f, std::max(0.05f, processed));
+        // 映射到目标范围[0.2, 0.9]
+        processed = processed * 0.7f + 0.2f;
         
-        // 整体降低输出值
-        processed = processed * 0.7f;
+        // 最终调整，增加区分度
+        processed = std::pow(processed, 0.85f);
         
         // 与上一次结果进行平滑
-        float smoothed = lastProcessed * 0.2f + processed * 0.8f;
+        float smoothed = lastProcessed * 0.3f + processed * 0.7f;
         lastProcessed = smoothed;
         
         LOG_D("Raw similarity: {:.2f}%, Processed: {:.2f}%", 
