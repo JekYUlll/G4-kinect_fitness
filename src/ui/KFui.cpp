@@ -1,7 +1,7 @@
 #include "ui/KFui.h"
 #include "samples/BodyBasics.h"
 
-namespace kf {
+namespace kfc {
 
     // UI 控件句柄
     HWND hStartButton = nullptr;
@@ -20,7 +20,7 @@ namespace kf {
 
     void OnPrintButtonClick() {
         LOG_D("Begin printing standard move.");
-        kf::g_actionTemplate->PrintData();
+        kfc::g_actionTemplate->PrintData();
         LOG_D("Finish printing standard move.");
     }
 
@@ -115,17 +115,17 @@ namespace kf {
         case WM_PAINT: {
             if (pApp) {
                 pApp->HandlePaint();
+                ValidateRect(hwnd, NULL);  // 只有在HandlePaint完成后才验证区域
                 return 0;
             }
-            // PAINTSTRUCT ps;
-            // HDC hdc = BeginPaint(hwnd, &ps);
-            // EndPaint(hwnd, &ps);
-            ValidateRect(hwnd, NULL);  // ???诉系统区域已更新，避免重复发送 WM_PAINT
-            return 0;
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
         }
 
         case WM_ERASEBKGND:
-            return TRUE;
+            if (pApp) {
+                return TRUE;  // 我们自己处理擦除背景
+            }
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
         case WM_SIZE: {
             if (pApp) {

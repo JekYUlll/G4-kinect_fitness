@@ -22,13 +22,13 @@ int main(int argc, char** argv)
         std::cout << "|  / ___| || |       | |/ /  ___/ ___|  |" << std::endl;
         std::cout << "| | |  _| || |_ _____| ' /| |_ | |      |" << std::endl;
         std::cout << "| | |_| |__   _|_____| . \\|  _|| |___   |" << std::endl;
-        std::cout << "|  \\____|  |_|       |_|\_\\_|   \\____|  |" << std::endl;
+        std::cout << "|  \\____|  |_|       |_|\\_\\_|   \\____|  |" << std::endl;
         std::cout << border << std::endl;
     }
 
-    kf::Logger::Init();
+    kfc::Logger::Init();
     LOG_I("Initializing G4 Kinect Fitness Platform...");
-    kf::InitConfig(KF_CONFIG_FILE);
+    kfc::InitConfig(KF_CONFIG_FILE);
 
     Application application;
     return application.Run(GetModuleHandle(NULL), SW_SHOWNORMAL);

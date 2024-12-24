@@ -8,7 +8,7 @@
 
 #include "log/KFLog.h"
 
-namespace kf {
+namespace kfc {
 
     struct Config {
         std::string std_file_path;

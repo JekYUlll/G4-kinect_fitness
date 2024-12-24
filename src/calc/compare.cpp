@@ -2,7 +2,7 @@
 #include <Eigen/Dense>
 #include <map>
 
-namespace kf {
+namespace kfc {
     // 定义关节权重映射
     static const std::map<JointType, float> jointWeights = {
         // 手部关节权重最高
@@ -37,8 +37,8 @@ namespace kf {
         {JointType_FootLeft, 0.8f},
         
         // 头部关节
-        {JointType_Head, 1.0f},
-        {JointType_Neck, 1.0f}
+        {JointType_Head, 2.0f},
+        {JointType_Neck, 2.0f}
     };
 
     // 定义骨骼连接关系，用于计算相对角度
@@ -68,50 +68,28 @@ namespace kf {
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // 计算向量
-    struct Vector3 {
-        float x, y, z;
-        Vector3(const CameraSpacePoint& p) : x(p.X), y(p.Y), z(p.Z) {}
-        Vector3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
-        Vector3 operator-(const Vector3& other) const {
-            return Vector3(x - other.x, y - other.y, z - other.z);
-        }
-        float length() const {
-            return std::sqrt(x*x + y*y + z*z);
-        }
-        Vector3 normalize() const {
-            float len = length();
-            if (len < 1e-6f) return Vector3(0, 0, 0);
-            return Vector3(x/len, y/len, z/len);
-        }
-        float dot(const Vector3& other) const {
-            return x*other.x + y*other.y + z*other.z;
-        }
-    };
+    // 使用 Eigen 优化的向量计算
+    using Vector3d = Eigen::Vector3f;
 
-    // 计算两个骨骼向量之间的角度
-    float calculateAngle(const Vector3& v1, const Vector3& v2) {
-        float dot = v1.dot(v2);
-        float lengths = v1.length() * v2.length();
-        if (lengths < 1e-6f) return 0.0f;
-        float cosAngle = dot / lengths;
+    Vector3d toEigenVector(const CameraSpacePoint& p) {
+        return Vector3d(p.X, p.Y, p.Z);
+    }
+
+    float calculateAngle(const Vector3d& v1, const Vector3d& v2) {
+        float cosAngle = v1.normalized().dot(v2.normalized());
         cosAngle = std::min(1.0f, std::max(-1.0f, cosAngle));
         return std::acos(cosAngle);
     }
 
-    // 计算相对位置（归一化到骨架大小）
-    Vector3 calculateRelativePosition(const CameraSpacePoint& joint, 
-                                   const CameraSpacePoint& spineMid, 
-                                   const CameraSpacePoint& spineBase) {
-        Vector3 spineVector = Vector3(spineMid) - Vector3(spineBase);
-        float spineLength = spineVector.length();
-        if (spineLength < 1e-6f) return Vector3(0, 0, 0);
-        Vector3 relativePos = Vector3(joint) - Vector3(spineBase);
-        return Vector3(
-            relativePos.x / spineLength,
-            relativePos.y / spineLength,
-            relativePos.z / spineLength
-        );
+    Vector3d calculateRelativePosition(const CameraSpacePoint& joint, 
+                                    const CameraSpacePoint& spineMid, 
+                                    const CameraSpacePoint& spineBase) {
+        Vector3d spineVector = toEigenVector(spineMid) - toEigenVector(spineBase);
+        float spineLength = spineVector.norm();
+        if (spineLength < 1e-6f) return Vector3d::Zero();
+        
+        Vector3d relativePos = toEigenVector(joint) - toEigenVector(spineBase);
+        return relativePos / spineLength;
     }
 
     // 计算两帧之间的相似度
@@ -162,8 +140,9 @@ namespace kf {
                 joint1Template.trackingState == TrackingState_Tracked && 
                 joint2Template.trackingState == TrackingState_Tracked) {
                 
-                Vector3 boneVectorReal = Vector3(joint2Real.position) - Vector3(joint1Real.position);
-                Vector3 boneVectorTemplate = Vector3(joint2Template.position) - Vector3(joint1Template.position);
+                Vector3d boneVectorReal = toEigenVector(joint2Real.position) - toEigenVector(joint1Real.position);
+                Vector3d boneVectorTemplate = toEigenVector(joint2Template.position) - toEigenVector(joint1Template.position);
+                
                 float angle = calculateAngle(boneVectorReal, boneVectorTemplate);
                 float angleSimilarity = std::exp(-angle * angle / 1.0f);
 
@@ -189,6 +168,7 @@ namespace kf {
             spineBaseTemplate.trackingState == TrackingState_Tracked && 
             spineMidTemplate.trackingState == TrackingState_Tracked) {
             
+            // 使用 Eigen 的批量运算
             for (size_t i = 0; i < realFrame.joints.size(); ++i) {
                 const auto& jointReal = realFrame.joints[i];
                 const auto& jointTemplate = templateFrame.joints[i];
@@ -196,12 +176,12 @@ namespace kf {
                 if (jointReal.trackingState == TrackingState_Tracked && 
                     jointTemplate.trackingState == TrackingState_Tracked) {
                     
-                    Vector3 relPosReal = calculateRelativePosition(
+                    Vector3d relPosReal = calculateRelativePosition(
                         jointReal.position, spineMidReal.position, spineBaseReal.position);
-                    Vector3 relPosTemplate = calculateRelativePosition(
+                    Vector3d relPosTemplate = calculateRelativePosition(
                         jointTemplate.position, spineMidTemplate.position, spineBaseTemplate.position);
 
-                    float posDistance = (relPosReal - relPosTemplate).length();
+                    float posDistance = (relPosReal - relPosTemplate).norm();
                     float posSimilarity = std::exp(-posDistance * posDistance / 0.5f);
 
                     float weight = 1.0f;

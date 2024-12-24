@@ -10,7 +10,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/common.h"
 
-namespace kf {
+namespace kfc {
 
     class  Logger {
     public:
@@ -30,11 +30,11 @@ namespace kf {
 
     };
 
-#define LOG_T(...) SPDLOG_LOGGER_TRACE(kf::Logger::GetLoggerInstance(), __VA_ARGS__)
-#define LOG_D(...) SPDLOG_LOGGER_DEBUG(kf::Logger::GetLoggerInstance(), __VA_ARGS__)
-#define LOG_I(...)  SPDLOG_LOGGER_INFO(kf::Logger::GetLoggerInstance(), __VA_ARGS__)
-#define LOG_W(...)  SPDLOG_LOGGER_WARN(kf::Logger::GetLoggerInstance(), __VA_ARGS__)
-#define LOG_E(...) SPDLOG_LOGGER_ERROR(kf::Logger::GetLoggerInstance(), __VA_ARGS__)
+#define LOG_T(...) SPDLOG_LOGGER_TRACE(kfc::Logger::GetLoggerInstance(), __VA_ARGS__)
+#define LOG_D(...) SPDLOG_LOGGER_DEBUG(kfc::Logger::GetLoggerInstance(), __VA_ARGS__)
+#define LOG_I(...)  SPDLOG_LOGGER_INFO(kfc::Logger::GetLoggerInstance(), __VA_ARGS__)
+#define LOG_W(...)  SPDLOG_LOGGER_WARN(kfc::Logger::GetLoggerInstance(), __VA_ARGS__)
+#define LOG_E(...) SPDLOG_LOGGER_ERROR(kfc::Logger::GetLoggerInstance(), __VA_ARGS__)
 }
 
 #endif //KFLOG_H

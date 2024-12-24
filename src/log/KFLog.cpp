@@ -5,7 +5,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/async.h"
 
-namespace kf {
+namespace kfc {
 
     std::shared_ptr<spdlog::logger> Logger::sLoggerInstance{};
 

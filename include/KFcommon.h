@@ -11,7 +11,7 @@
 #include "config.h"
 #include "ui/KFui.h"
 
-namespace kf {
+namespace kfc {
 
 	extern std::string std_file_path;
 

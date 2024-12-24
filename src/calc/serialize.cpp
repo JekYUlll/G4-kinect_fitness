@@ -1,6 +1,6 @@
 #include "calc/serialize.h"
 
-namespace kf {
+namespace kfc {
 
     // 全局变量
     std::mutex templateMutex;
@@ -73,17 +73,17 @@ namespace kf {
 
     // 构造函数，加载标准动作文件
     ActionTemplate::ActionTemplate(const std::string& filePath) {
-        _frames = std::make_unique<std::vector<kf::FrameData>>();
+        _frames = std::make_unique<std::vector<kfc::FrameData>>();
         
         // 确保目录存在
-        if (!kf::ensureDirectoryExists()) {
+        if (!kfc::ensureDirectoryExists()) {
             LOG_E("无法确保目录结构存在");
             throw std::runtime_error("Failed to ensure directory structure");
         }
 
         // 获取完整路径
-        std::string fullPath = kf::getStandardActionPath(filePath);
-        LOG_D("标准动作文件完整路径: {}", fullPath);
+        std::string fullPath = kfc::getStandardActionPath(filePath);
+        //LOG_D("标准动作文件完整路径: {}", fullPath);
         
         if (!loadFromFile(fullPath)) {
             LOG_E("无法从文件加载标准动作: {}", fullPath);
@@ -104,7 +104,7 @@ namespace kf {
             _frames->clear();
             size_t frameCount = 0;
             while (in.peek() != EOF) {
-                kf::FrameData frame;
+                kfc::FrameData frame;
                 frame.deserialize(in);
                 _frames->push_back(frame);
                 frameCount++;

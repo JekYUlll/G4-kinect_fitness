@@ -1,7 +1,7 @@
 #include "KFcommon.h"
 #include <filesystem>
 
-namespace kf {
+namespace kfc {
 	std::string std_file_path = ""; // 标准动作文件路径
 	int window_width = 800;
 	int window_height = 600;

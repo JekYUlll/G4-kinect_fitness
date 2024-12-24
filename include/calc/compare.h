@@ -10,7 +10,7 @@
 
 #include <Eigen/Dense> // 用于回归分析
 
-namespace kf {
+namespace kfc {
 
 #if defined(USE_LINEAR_REGRESSION)
 
@@ -25,12 +25,12 @@ namespace kf {
 
 #elif defined(USE_DTW)
     // 将输入修改为更通用的 单维向量输入，保留线性回归误差计算的逻辑。
-    float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
+    // float calculateRegressionError(const std::vector<float>& realValues, const std::vector<float>& templateValues);
 
     // 比较两个动作帧
     float compareFrames(const FrameData& realFrame, const FrameData& templateFrame);
 
-    // DTW 比较函数
+    // // 使用 Eigen 加速的 DTW 算法
     // 将缓冲区与模板动作中的每一帧调用 compareFrames 进行帧距离计算，并使用动态时间规整（DTW）算法求解最小代价路径。
     float computeDTW(const std::vector<FrameData>& realFrames, const std::vector<FrameData>& templateFrames);
 

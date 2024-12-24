@@ -13,6 +13,9 @@
 #include <string>
 #include <dwrite.h>
 #include <strsafe.h>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #include "stdafx.h"
 #include "resource.h"
@@ -150,7 +153,10 @@ private:
 
     std::string m_recordFilePath;   // 添加文件路径成员
 
-    float m_fCurrentSimilarity;
+    std::atomic<float> m_fCurrentSimilarity;
+    std::mutex m_similarityMutex;
+    std::condition_variable m_similarityCV;
+    bool m_similarityUpdated;
 
     /// <summary>
     /// Main processing function
@@ -177,9 +183,9 @@ private:
     // 播放标准动作骨架（蓝色）
     void PlayActionTemplate(INT64 nTime);
 
-    void DrawTemplateBody(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints);
+    void DrawTemplateBody(const kfc::JointData* pJoints, const D2D1_POINT_2F* pJointPoints);
 
-    void DrawTemplateBone(const kf::JointData* pJoints, const D2D1_POINT_2F* pJointPoints, JointType joint0, JointType joint1);
+    void DrawTemplateBone(const kfc::JointData* pJoints, const D2D1_POINT_2F* pJointPoints, JointType joint0, JointType joint1);
 
     /// <summary>
     /// Set the status bar message

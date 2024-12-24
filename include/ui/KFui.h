@@ -8,7 +8,7 @@
 #include "log/KFLog.h"
 #include "KFcommon.h"
 
-namespace kf {
+namespace kfc {
 
     // UI ¿Ø¼þ¾ä±ú
     extern HWND hStartButton;

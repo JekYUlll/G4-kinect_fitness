@@ -10,7 +10,7 @@
 #include <future>
 #include <mutex>
 
-namespace kf {
+namespace kfc {
 
 // 用于序列化的关节数据结构
 struct JointData {
@@ -72,7 +72,7 @@ public:
 
 class ActionTemplate {
 private:
-    std::unique_ptr<std::vector<kf::FrameData>> _frames; // 使用堆存储标准动作帧
+    std::unique_ptr<std::vector<kfc::FrameData>> _frames; // 使用堆存储标准动作帧
 
 public:
     // 构造函数，直接加载文件
@@ -85,7 +85,7 @@ public:
     void PrintData() const;
 
     // 获取标准动作的帧数据
-    [[nodiscard]] inline const std::vector<kf::FrameData>& getFrames() const {
+    [[nodiscard]] inline const std::vector<kfc::FrameData>& getFrames() const {
         return *_frames; // 解引用智能指针
     }
 

@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-namespace kf {
+namespace kfc {
 
 // 基础配置
 //#define WRITE_TO_FILE true
