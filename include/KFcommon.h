@@ -9,8 +9,9 @@
 #include <string>
 
 #include "config.h"
-#include "ui/KFui.h"
+#include "log/KFLog.h"
 
+#define NOMINMAX
 namespace kfc {
 
 	extern std::string std_file_path;

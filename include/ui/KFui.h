@@ -7,6 +7,7 @@
 
 #include "log/KFLog.h"
 #include "KFcommon.h"
+#include "samples/BodyBasics.h"
 
 namespace kfc {
 

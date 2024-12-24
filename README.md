@@ -9,19 +9,22 @@
 默认编译环境为 Visual Studio 2022，使用 C++17 标准。  
 依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 10 及以上版本。
 
-#### External
+依赖库
+---
 
-<a href="External/README.md">External</a>.
+<a href="External/README.md">External位置</a>。
 
 - 窗口：  Win32 API
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
 - 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
 
-#### 算法说明
+算法说明
+---
 
 见<a href="docs/README.md">此处</a>文件。
 
-#### 用法
+用法
+---
 
 将`config.txt`放在程序可执行文件同级目录中，配置以下内容（后三个参数实际未启用）：
 ```cpp

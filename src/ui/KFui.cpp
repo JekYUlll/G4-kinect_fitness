@@ -1,6 +1,4 @@
 #include "ui/KFui.h"
-#include "samples/BodyBasics.h"
-
 namespace kfc {
 
     // UI 控件句柄
