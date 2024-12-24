@@ -148,34 +148,48 @@ void Application::HandlePaint()
             }
 
             if (SUCCEEDED(hr) && m_pBrush) {
-                // 获取当前相似度值（原子操作）
+                // 获取当前相似度值（使用平滑处理）
+                static float smoothedSimilarity = 0.0f;
                 float currentSimilarity = m_fCurrentSimilarity.load(std::memory_order_acquire);
                 
-                // 绘制相似度文本
-                WCHAR similarityText[64];
-                swprintf_s(similarityText, L"Similarity: %.2f%%", currentSimilarity * 100.0f);
+                // 使用指数移动平均进行平滑
+                const float smoothingFactor = 0.3f; // 平滑因子，可以根据需要调整
+                smoothedSimilarity = smoothedSimilarity * (1.0f - smoothingFactor) + 
+                                   currentSimilarity * smoothingFactor;
                 
-                // 创建半透明黑色背景
-                ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
-                hr = m_pRenderTarget->CreateSolidColorBrush(
-                    D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
-                    &pBackgroundBrush
-                );
-
-                if (SUCCEEDED(hr) && pBackgroundBrush) {
-                    // 绘制相似度背景
-                    m_pRenderTarget->FillRectangle(
-                        D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
-                        pBackgroundBrush
-                    );
+                // 只有当变化超过阈值时才更新显示
+                static float lastDisplayedSimilarity = 0.0f;
+                const float updateThreshold = 0.005f; // 0.5%的变化阈值
+                
+                if (std::abs(smoothedSimilarity - lastDisplayedSimilarity) > updateThreshold) {
+                    lastDisplayedSimilarity = smoothedSimilarity;
+                    
                     // 绘制相似度文本
-                    m_pRenderTarget->DrawText(
-                        similarityText, wcslen(similarityText),
-                        pTextFormat,
-                        D2D1::RectF(10.0f, 50.0f, 300.0f, 90.0f),
-                        m_pBrush
+                    WCHAR similarityText[64];
+                    swprintf_s(similarityText, L"Similarity: %.1f%%", smoothedSimilarity * 100.0f);
+                    
+                    // 创建半透明黑色背景
+                    ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
+                    hr = m_pRenderTarget->CreateSolidColorBrush(
+                        D2D1::ColorF(D2D1::ColorF::Black, 0.5f),
+                        &pBackgroundBrush
                     );
-                    SafeRelease(pBackgroundBrush);
+
+                    if (SUCCEEDED(hr) && pBackgroundBrush) {
+                        // 绘制相似度背景
+                        m_pRenderTarget->FillRectangle(
+                            D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
+                            pBackgroundBrush
+                        );
+                        // 绘制相似度文本
+                        m_pRenderTarget->DrawText(
+                            similarityText, wcslen(similarityText),
+                            pTextFormat,
+                            D2D1::RectF(10.0f, 50.0f, 300.0f, 90.0f),
+                            m_pBrush
+                        );
+                        SafeRelease(pBackgroundBrush);
+                    }
                 }
             }
         }
