@@ -119,12 +119,16 @@ namespace kfc {
         if (speedRatio < config.minSpeedRatio) {
             // 速度太慢，使用平滑的惩罚函数
             float factor = (speedRatio - config.minSpeedRatio) / config.minSpeedRatio;
-            return std::max(config.minSpeedPenalty, 1.0f + factor);
+            // 将惩罚值限制在 [minSpeedPenalty, 1.0] 范围内
+            return config.minSpeedPenalty + (1.0f - config.minSpeedPenalty) * 
+                   (1.0f + std::tanh(factor));  // 使用 tanh 实现平滑过渡
         }
         else if (speedRatio > config.maxSpeedRatio) {
             // 速度太快，使用平滑的惩罚函数
             float factor = (speedRatio - config.maxSpeedRatio) / config.maxSpeedRatio;
-            return std::max(config.minSpeedPenalty, 1.0f - factor);
+            // 将惩罚值限制在 [minSpeedPenalty, 1.0] 范围内
+            return config.minSpeedPenalty + (1.0f - config.minSpeedPenalty) * 
+                   (1.0f - std::tanh(factor));  // 使用 tanh 实现平滑过渡
         }
 
         return 1.0f;  // 速度在合理范围内，不惩罚
