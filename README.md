@@ -1,23 +1,19 @@
 # G4-kinect_fitness - KFC
 ### SEU HCI2024 G4 
 
----
-
 English version <a href="README_en.md">here</a>.
-
----
 
 *Kinect Fitness Coach* 是一个基于 Kinect v2 的健身教练系统框架。简称 KFC (认真)。  
 主命名空间为`kfc`。
 
 默认编译环境为 Visual Studio 2022，使用 C++17 标准。  
-依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 10 及以上版本。
-
-学生作品，仅供娱乐。
+依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 8 及以上版本。
 
 ![Kinect](docs/images/me.png)
 
-依赖库
+*学生作品，仅供娱乐。*
+
+依赖
 ---
 
 <a href="External/README.md">External位置</a>。
@@ -25,13 +21,16 @@ English version <a href="README_en.md">here</a>.
 - 窗口：  Win32 API
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
 - 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
+- 绘图库：[Direct2D](https://docs.microsoft.com/en-us/windows/win32/direct2d/direct2d-portal)
 
-## 文档
+文档
+---
 
 - [使用说明](docs/Usage.md) - 详细的使用指南，包含按键说明和配置文件说明
 - [算法说明](docs/Algorithm.md) - 技术实现细节和算法原理
 
-## Directory Structure
+结构
+---
 
 ```
 G4-Kinect/
@@ -44,7 +43,7 @@ G4-Kinect/
 │   │   └── window.h
 │   ├── calc/          # Calculation and algorithms
 │   │   ├── compare.h
-│   │   └── serialize.hpp
+│   │   └── serialize.h
 │   ├── log/           # Logging functionality
 │   │   └── logger.h
 │   └── config/        # Configuration
@@ -73,7 +72,7 @@ G4-Kinect/
 └── README.md          # This file
 ```
 
-*release*
+*release:*
 
 ```
 G4-Kinect/

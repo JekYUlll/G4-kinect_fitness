@@ -45,7 +45,7 @@ G4-Kinect/
 │   │   └── window.h
 │   ├── calc/          # Calculation and algorithms
 │   │   ├── compare.h
-│   │   └── serialize.hpp
+│   │   └── serialize.h
 │   ├── log/           # Logging functionality
 │   │   └── logger.h
 │   └── config/        # Configuration
