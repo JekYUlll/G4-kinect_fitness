@@ -9,6 +9,16 @@
 默认编译环境为 Visual Studio 2022，使用 C++17 标准。  
 依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 10 及以上版本。
 
+```
+G4-Kinect/
+├── kinect_fitness.exe    # Main program
+├── data/               # Data directory
+│   ├── config.toml    # Configuration file
+│   ├── standard/      # Standard action files directory
+│   └── record/       # Recorded action files directory
+└── README.md          # This file
+```
+
 ![Kinect](docs/images/me.png)
 
 依赖库
@@ -19,11 +29,6 @@
 - 窗口：  Win32 API
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
 - 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
-
-算法说明
----
-
-见<a href="docs/README.md">此处</a>文件。
 
 用法
 ---
