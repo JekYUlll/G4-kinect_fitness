@@ -9,6 +9,8 @@
 默认编译环境为 Visual Studio 2022，使用 C++17 标准。  
 依赖 Windows API 及 Kinect SDK v2，因此仅支持 Windows 10 及以上版本。
 
+学生作品，仅供娱乐。
+
 ```
 G4-Kinect/
 ├── kinect_fitness.exe    # Main program

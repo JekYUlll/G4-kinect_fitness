@@ -2,6 +2,8 @@
 
 A real-time action scoring system based on Kinect v2, designed to capture and evaluate the similarity between user actions and standard actions.
 
+Student project, for entertainment purposes only.
+
 ## System Requirements
 
 ### Hardware Requirements
