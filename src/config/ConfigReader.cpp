@@ -117,6 +117,9 @@ bool Config::Init(const std::string& configPath) {
             case "similarity.threshold"_hash:
                 config.similarityThreshold = std::stof(value);
                 break;
+            case "similarity.difficulty"_hash:
+                config.difficulty = std::stoi(value);
+                break;
             case "similarity.similarityHistorySize"_hash:
                 config.similarityHistorySize = std::stoi(value);
                 break;

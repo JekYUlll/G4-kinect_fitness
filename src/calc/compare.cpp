@@ -292,43 +292,51 @@ namespace kfc {
 
     float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
         static float lastProcessed = 0.0f;
+        const auto& config = Config::getInstance();
+        
+        // 根据难度调整参数
+        float difficultyFactor = (config.difficulty - 3) * 0.1f;  // 难度3为基准，每级难度增减10%
+        float basePunishment = 0.4f * (1.0f + difficultyFactor);  // 基础惩罚随难度调整
+        float stretchFactor = 1.3f * (1.0f - difficultyFactor);   // 拉伸系数随难度调整
+        float mappingRange = 4.5f * (1.0f - difficultyFactor);    // 映射范围随难度调整
+        float finalPower = 1.2f * (1.0f + difficultyFactor);      // 最终幂次随难度调整
         
         // 如果原始相似度太低，保持高惩罚
         if (rawSimilarity < 0.3f) {
-            float punished = rawSimilarity * 0.4f;  // 稍微减轻最低分段的惩罚
+            float punished = rawSimilarity * basePunishment;
             float smoothed = lastProcessed * 0.7f + punished * 0.3f;
             lastProcessed = smoothed;
             return smoothed;
         }
         
         // 先进行非线性拉伸，适度惩罚中等相似度
-        float stretched = std::pow((rawSimilarity - 0.3f) * 1.3f, 1.1f);  // 降低拉伸系数，适度增加幂次
+        float stretched = std::pow((rawSimilarity - 0.3f) * stretchFactor, 1.1f);
         stretched = std::max(0.0f, std::min(1.0f, stretched));
         
         // 将相似度映射到合适范围
-        float x = (stretched - 0.25f) * 4.5f;  // 调整基准点和映射范围
+        float x = (stretched - 0.25f) * mappingRange;
         
         // 使用sigmoid函数进行S型映射
-        float processed = 1.0f / (1.0f + std::exp(-x * (sensitivity * 1.0f)));  // 调整灵敏度
+        float processed = 1.0f / (1.0f + std::exp(-x * (sensitivity * 1.0f)));
         
         // 分段线性映射，平衡各分段的惩罚
         if (processed < 0.35f) {
-            processed *= 0.45f;  // 保持较高惩罚
+            processed *= 0.45f * (1.0f + difficultyFactor);  // 低分段惩罚随难度增加
         } else if (processed < 0.65f) {
-            processed = 0.35f + (processed - 0.35f) * 0.8f;  // 适度惩罚中等分段
+            processed = 0.35f + (processed - 0.35f) * (0.8f * (1.0f - difficultyFactor));  // 中等分段惩罚随难度增加
         } else {
-            processed = 0.65f + (processed - 0.65f) * 0.75f;  // 降低高分段的奖励
+            processed = 0.65f + (processed - 0.65f) * (0.75f * (1.0f - difficultyFactor));  // 高分段奖励随难度减少
         }
         
         // 最终调整
-        processed = std::pow(processed, 1.2f);  // 适度增加幂次
+        processed = std::pow(processed, finalPower);
         
         // 平滑处理
         float smoothed = lastProcessed * 0.3f + processed * 0.7f;
         lastProcessed = smoothed;
         
-        LOG_D("Raw similarity: {:.2f}%, Processed: {:.2f}%", 
-            rawSimilarity * 100.0f, smoothed * 100.0f);
+        LOG_D("Raw similarity: {:.2f}%, Processed: {:.2f}%, Difficulty: {}", 
+            rawSimilarity * 100.0f, smoothed * 100.0f, config.difficulty);
             
         return smoothed;
     }
@@ -413,7 +421,7 @@ namespace kfc {
         Matrix dtw = Matrix::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
         dtw(0, 0) = 0.0f;
 
-        // 预计算���有帧的相似度，同样使用 RowMajor 布局
+        // 预计算所有帧的相似度，同样使用 RowMajor 布局
         Matrix similarityMatrix = Matrix::Zero(M, N);
         #pragma omp parallel for collapse(2) if(M * N > 1000)
         for (int i = 0; i < static_cast<int>(M); ++i) {

@@ -48,6 +48,7 @@ struct Config {
     float dtwBandwidthRatio;       // DTW带宽比例
     float similarityThreshold;      // 相似度阈值
     int similarityHistorySize;
+    int difficulty;                // 难度等级 (1-5)
     
     [[nodiscard]] static inline Config& getInstance() {
         static Config instance;
