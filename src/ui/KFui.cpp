@@ -36,7 +36,6 @@ namespace kfc {
             CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
             pApp = reinterpret_cast<Application*>(pCreate->lpCreateParams);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pApp));
-            //LOG_D("Set GWLP_USERDATA in WM_NCCREATE");
             return TRUE;
         }
 
@@ -106,14 +105,25 @@ namespace kfc {
             SendMessage(hStartButton, WM_SETFONT, (WPARAM)hFont, TRUE);
             SendMessage(hRecordButton, WM_SETFONT, (WPARAM)hFont, TRUE);
             SendMessage(hPrintButton, WM_SETFONT, (WPARAM)hFont, TRUE);
+            SendMessage(hPlayButton, WM_SETFONT, (WPARAM)hFont, TRUE);
             
             return 0;
         }
 
         case WM_PAINT: {
             if (pApp) {
+                PAINTSTRUCT ps;
+                HDC hdc = BeginPaint(hwnd, &ps);
+                
+                // 绘制窗口背景
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+                
+                // 处理应用程序的绘制
                 pApp->HandlePaint();
-                ValidateRect(hwnd, NULL);  // 只有在HandlePaint完成后才验证区域
+                
+                EndPaint(hwnd, &ps);
                 return 0;
             }
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -121,7 +131,8 @@ namespace kfc {
 
         case WM_ERASEBKGND:
             if (pApp) {
-                return TRUE;  // 我们自己处理擦除背景
+                // 让系统处理背景擦除，这样按钮区域会正确重绘
+                return DefWindowProc(hwnd, uMsg, wParam, lParam);
             }
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 

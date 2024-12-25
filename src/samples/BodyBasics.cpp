@@ -124,9 +124,17 @@ void Application::HandlePaint()
         return;
     }
 
+    // 获取视频区域的位置和大小
+    RECT rc;
+    GetClientRect(GetDlgItem(m_hWnd, IDC_VIDEOVIEW), &rc);
+    D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+
     // 开始绘制
     m_pRenderTarget->BeginDraw();
-    
+
+    // 清除视频区域背景
+    m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+
     // 更新画面内容（包含了颜色帧的绘制，会自动清除背景）
     Update();
 
@@ -232,7 +240,9 @@ void Application::HandlePaint()
 
     // 结束绘制
     hr = m_pRenderTarget->EndDraw();
-    if (hr == D2DERR_RECREATE_TARGET) {
+
+    // 如果设备丢失，需要重新创建资源
+    if (D2DERR_RECREATE_TARGET == hr) {
         hr = S_OK;
         DiscardDirect2DResources();
         EnsureDirect2DResources();
