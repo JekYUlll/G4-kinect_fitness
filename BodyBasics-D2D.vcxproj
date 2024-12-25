@@ -20,15 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\calc\compare.cpp" />
-    <ClCompile Include="src\config\ConfigReader.cpp" />
-    <ClCompile Include="src\KFcommon.cpp" />
-    <ClCompile Include="src\samples\BodyBasics.cpp" />
-    <ClCompile Include="src\log\KFLog.cpp" />
+    <ClCompile Include="src\config\config.cpp" />
+    <ClCompile Include="src\core\application.cpp" />
+    <ClCompile Include="src\core\common.cpp" />
+    <ClCompile Include="src\log\logger.cpp" />
     <ClCompile Include="src\calc\serialize.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\samples\ColorBasics.cpp" />
-    <ClCompile Include="src\samples\ImageRenderer.cpp" />
-    <ClCompile Include="src\ui\KFui.cpp" />
+    <ClCompile Include="src\ui\window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="app.ico" />
@@ -347,15 +345,13 @@
     <ClInclude Include="include\calc\compare.h" />
     <ClInclude Include="include\calc\serialize.h" />
     <ClInclude Include="include\config\config.h" />
-    <ClInclude Include="include\config\ConfigReader.h" />
+    <ClInclude Include="include\core\application.h" />
+    <ClInclude Include="include\core\common.h" />
+    <ClInclude Include="include\core\utils.h" />
+    <ClInclude Include="include\log\logger.h" />
     <ClInclude Include="include\samples\BodyBasics.h" />
-    <ClInclude Include="include\log\KFLog.h" />
-    <ClInclude Include="include\KFcommon.h" />
     <ClInclude Include="include\resource.h" />
-    <ClInclude Include="include\stdafx.h" />
-    <ClInclude Include="include\ui\KFui.h" />
-    <ClInclude Include="src\samples\ColorBasics.h" />
-    <ClInclude Include="src\samples\ImageRenderer.h" />
+    <ClInclude Include="include\ui\window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -450,7 +446,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>
       </EntryPointSymbol>
-      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Dwrite.lib;Comctl32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d2d1.lib;Dwrite.lib;Comctl32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -465,7 +461,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>
       </EntryPointSymbol>
-      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Dwrite.lib;Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d2d1.lib;Dwrite.lib;Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -486,7 +482,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>
       </EntryPointSymbol>
-      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Dwrite.lib;Comctl32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d2d1.lib;Dwrite.lib;Comctl32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -505,7 +501,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>
       </EntryPointSymbol>
-      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Dwrite.lib;Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kinect20.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d2d1.lib;Dwrite.lib;Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

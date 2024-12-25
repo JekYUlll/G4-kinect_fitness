@@ -4,13 +4,12 @@
 #include <memory>
 #include <iostream>
 
-#include "stdafx.h"
 #include "resource.h"
-#include "log/KFLog.h"
-#include "KFcommon.h"
-#include "ui/KFui.h"
-#include "samples/BodyBasics.h"
-#include "config/ConfigReader.h"
+#include "log/logger.h"
+#include "core/common.h"
+#include "ui/window.h"
+#include "core/application.h"
+#include "config/config.h"
 
 int main(int argc, char** argv)
 {

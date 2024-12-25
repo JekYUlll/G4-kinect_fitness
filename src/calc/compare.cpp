@@ -2,8 +2,8 @@
 #include <map>
 
 #include "calc/compare.h"
-#include "config/ConfigReader.h"
-#include "KFcommon.h"
+#include "config/config.h"
+#include "core/common.h"
 
 namespace kfc {
     // 定义关节权重映射

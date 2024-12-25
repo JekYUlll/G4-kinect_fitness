@@ -1,12 +1,8 @@
-//------------------------------------------------------------------------------
-// <copyright file="BodyBasics.cpp" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
-
-#include "samples/BodyBasics.h"
+#include "core/application.h"
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Dwrite.lib")
+
+using kfc::SafeRelease;
 
 static const float c_JointThickness = 3.0f;
 static const float c_TrackedBoneThickness = 6.0f;

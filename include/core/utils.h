@@ -1,29 +1,11 @@
-//------------------------------------------------------------------------------
-// <copyright file="stdafx.h" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
+#ifndef KF_CORE_UTILS_H
+#define KF_CORE_UTILS_H
 
-// include file for standard system and project includes
+#define NOMINMAX
+#include <Windows.h>
 
-#pragma once
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-#endif
-
-// Windows Header Files
-#include <windows.h>
-
-#include <Shlobj.h>
-
-// Direct2D Header Files
-#include <d2d1.h>
-
-// Kinect Header files
-#include <Kinect.h>
-
-#pragma comment (lib, "d2d1.lib")
+#pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "dwrite.lib")
 
 #ifdef _UNICODE
 #if defined _M_IX86
@@ -35,13 +17,18 @@
 #endif
 #endif
 
-// Safe release for interfaces
+namespace kfc {
+
 template<class Interface>
 inline void SafeRelease(Interface *& pInterfaceToRelease)
 {
-    if (pInterfaceToRelease != NULL)
+    if (pInterfaceToRelease)
     {
         pInterfaceToRelease->Release();
-        pInterfaceToRelease = NULL;
+        pInterfaceToRelease = nullptr;
     }
 }
+
+} // namespace kfc
+
+#endif // KF_CORE_UTILS_H 

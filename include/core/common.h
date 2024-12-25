@@ -1,16 +1,15 @@
-#ifndef KFCOMMON_H
-#define KFCOMMON_H
+#ifndef KF_COMMON_H
+#define KF_COMMON_H
 
 #include <Windows.h>
+#include <Kinect.h>
 #include <iostream>
 #include <fstream>
-#include <Kinect.h>
 #include <vector>
 #include <string>
 
 #include "config/config.h"
-#include "config/ConfigReader.h"
-#include "log/KFLog.h"
+#include "log/logger.h"
 
 #define NOMINMAX
 namespace kfc {
@@ -26,6 +25,6 @@ namespace kfc {
 
 }
 
-#endif // !KFCOMMON_H
+#endif // !KF_COMMON_H
 
 

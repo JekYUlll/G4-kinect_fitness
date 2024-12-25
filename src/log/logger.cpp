@@ -1,7 +1,7 @@
 //
 // Created by JekYUlll on 2024/9/23.
 //
-#include "log/KFLog.h"
+#include "log/logger.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/async.h"
 

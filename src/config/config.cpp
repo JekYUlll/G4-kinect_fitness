@@ -1,5 +1,5 @@
-#include "config/ConfigReader.h"
-#include "log/KFLog.h"
+#include "config/config.h"
+#include "log/logger.h"
 #include "calc/serialize.h"
 #include <fstream>
 #include <sstream>

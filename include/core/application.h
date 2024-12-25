@@ -1,12 +1,7 @@
-//------------------------------------------------------------------------------
-// <copyright file="BodyBasics.h" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
+#ifndef KF_CORE_APPLICATION_H
+#define KF_CORE_APPLICATION_H
 
-#ifndef BODYBASIC_H
-#define BODYBASIC_H
-
+#define NOMINMAX
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <thread>
@@ -17,15 +12,16 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <d2d1.h>
+#include <Kinect.h>
 
-#include "stdafx.h"
 #include "resource.h"
-
-#include "KFcommon.h"
-#include "ui/KFui.h"
+#include "core/utils.h"
+#include "core/common.h"
+#include "ui/window.h"
 #include "calc/serialize.h"
 #include "calc/compare.h"
-#include "config/ConfigReader.h"
+#include "config/config.h"
 
 // 声明视频窗口子类处理过程
 LRESULT CALLBACK VideoSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
@@ -264,5 +260,5 @@ private:
 
 
 
-#endif // !BODYBASIC_H
+#endif // !KF_CORE_APPLICATION_H
 

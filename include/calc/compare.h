@@ -1,13 +1,17 @@
-#ifndef COMPARE_HPP
-#define COMPARE_HPP
+#ifndef KF_CALC_COMPARE_H
+#define KF_CALC_COMPARE_H
 
 #define NOMINMAX
+#include <Windows.h>
+#include <Kinect.h>
 #include <future>
 #include <mutex>
 #include <cmath> 
 #include <limits>
 #include <Eigen/Dense>
-#include "serialize.h"
+
+#include "core/common.h"
+#include "calc/serialize.h"
 
 namespace kfc {
 
@@ -34,4 +38,4 @@ std::future<float> compareActionAsync(const ActionBuffer& buffer);
 
 } // namespace kfc
 
-#endif // !COMPARE_HPP
+#endif // KF_CALC_COMPARE_H

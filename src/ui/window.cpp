@@ -1,4 +1,5 @@
-#include "ui/KFui.h"
+#include "ui/window.h"
+
 namespace kfc {
 
     // UI 控件句柄
