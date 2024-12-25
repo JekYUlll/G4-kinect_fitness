@@ -36,6 +36,48 @@ Student project, for entertainment purposes only.
 
 ```
 G4-Kinect/
+├── include/            # Header files
+│   ├── core/          # Core functionality
+│   │   ├── application.h
+│   │   ├── common.h
+│   │   └── utils.h
+│   ├── ui/            # UI related
+│   │   └── window.h
+│   ├── calc/          # Calculation and algorithms
+│   │   ├── compare.h
+│   │   └── serialize.hpp
+│   ├── log/           # Logging functionality
+│   │   └── logger.h
+│   └── config/        # Configuration
+│       └── config.h
+├── src/               # Source files
+│   ├── core/          # Core implementation
+│   │   ├── application.cpp
+│   │   └── common.cpp
+│   ├── ui/            # UI implementation
+│   │   └── window.cpp
+│   ├── calc/          # Algorithm implementation
+│   │   ├── compare.cpp
+│   │   └── serialize.cpp
+│   ├── log/           # Logger implementation
+│   │   └── logger.cpp
+│   └── main.cpp       # Program entry
+├── data/              # Data files
+│   ├── config.toml    # Configuration file
+│   └── standard/      # Standard action files
+├── docs/              # Documentation
+│   ├── Algorithm.md   # Algorithm details
+│   └── Usage.md       # Usage guide
+├── External/          # External dependencies
+│   ├── Eigen/         # Eigen library
+│   └── spdlog/        # Logging library
+└── README.md          # This file
+```
+
+*release*
+
+```
+G4-Kinect/
 ├── kinect_fitness.exe    # Main program
 ├── data/               # Data directory
 │   ├── config.toml    # Configuration file
@@ -100,8 +142,8 @@ compare = 15                 # Comparison frame rate (1-30)
 
 # Action Settings
 [action]
-standardPath = "data/standard/sit.dat"  # Standard action file path
-bufferSize = 120                      # Action buffer size (frames)
+standardPath = "data\\sit.dat"  # Standard action file path
+bufferSize = 120               # Action buffer size (frames)
 
 # Similarity Parameters
 [similarity]

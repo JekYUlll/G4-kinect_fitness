@@ -3,6 +3,10 @@
 
 ---
 
+English version <a href="README_en.md">here</a>.
+
+---
+
 *Kinect Fitness Coach* 是一个基于 Kinect v2 的健身教练系统框架。简称 KFC (认真)。  
 主命名空间为`kfc`。
 
@@ -32,32 +36,66 @@ G4-Kinect/
 - 日志库：[spdlog](https://github.com/gabime/spdlog)
 - 数学库：[Eigen 3.4.0](https://eigen.tuxfamily.org/index.php?title=Main_Page)
 
-用法
----
-
 ## 文档
 
 - [使用说明](docs/Usage.md) - 详细的使用指南，包含按键说明和配置文件说明
 - [算法说明](docs/Algorithm.md) - 技术实现细节和算法原理
 
-## 快速开始
+## Directory Structure
 
-1. 安装依赖项
-2. 运行程序
-3. 按照[使用说明](docs/Usage.md)进行操作
+```
+G4-Kinect/
+├── include/            # Header files
+│   ├── core/          # Core functionality
+│   │   ├── application.h
+│   │   ├── common.h
+│   │   └── utils.h
+│   ├── ui/            # UI related
+│   │   └── window.h
+│   ├── calc/          # Calculation and algorithms
+│   │   ├── compare.h
+│   │   └── serialize.hpp
+│   ├── log/           # Logging functionality
+│   │   └── logger.h
+│   └── config/        # Configuration
+│       └── config.h
+├── src/               # Source files
+│   ├── core/          # Core implementation
+│   │   ├── application.cpp
+│   │   └── common.cpp
+│   ├── ui/            # UI implementation
+│   │   └── window.cpp
+│   ├── calc/          # Algorithm implementation
+│   │   ├── compare.cpp
+│   │   └── serialize.cpp
+│   ├── log/           # Logger implementation
+│   │   └── logger.cpp
+│   └── main.cpp       # Program entry
+├── data/              # Data files
+│   ├── config.toml    # Configuration file
+│   └── standard/      # Standard action files
+├── docs/              # Documentation
+│   ├── Algorithm.md   # Algorithm details
+│   └── Usage.md       # Usage guide
+├── External/          # External dependencies
+│   ├── Eigen/         # Eigen library
+│   └── spdlog/        # Logging library
+└── README.md          # This file
+```
 
-## 注意事项
+*release*
 
-1. 确保Kinect设备正确连接
-2. 保持适当的距离（1.5-3米）
-3. 避免复杂背景和遮挡
+```
+G4-Kinect/
+├── kinect_fitness.exe    # Main program
+├── data/               # Data directory
+│   ├── config.toml    # Configuration file
+│   ├── standard/      # Standard action files directory
+│   └── record/       # Recorded action files directory
+└── README.md          # This file
+```
 
-`file_path`为标准动作数据文件，为相对可执行文件的路径。  
-窗口中点击 [record] 按钮后开始录制，默认以`skeleton_record_` + 当前时间戳为文件命名，默认以.dat文件二进制存储。
 
----
-
-English version <a href="README_en.md">here</a>.
 
 
 
