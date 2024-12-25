@@ -51,6 +51,9 @@ Application::Application() :
     m_fCurrentSimilarity(0.0f),
     m_fTotalSimilarity(0.0f),
     m_nSimilarityCount(0),
+    m_similarityHistory(kfc::Config::getInstance().similarityHistorySize > 0 ? 
+                       kfc::Config::getInstance().similarityHistorySize : 100),  // 如果配置小于等于0，设置一个初始容量
+    m_historyIndex(0),
     m_similarityMutex(),
     m_similarityCV(),
     m_similarityUpdated(false)
@@ -831,10 +834,36 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                     float lastSimilarity = similarityFuture.get();
                                     m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
                                     
-                                    // 更新总准确率统计
-                                    auto currentTotal = m_fTotalSimilarity.load(std::memory_order_relaxed);
-                                    m_fTotalSimilarity.store(currentTotal + lastSimilarity, std::memory_order_relaxed);
-                                    m_nSimilarityCount.fetch_add(1, std::memory_order_relaxed);
+                                    // 更新相似度历史记录
+                                    {
+                                        std::lock_guard<std::mutex> lock(m_historyMutex);
+                                        const int historySize = kfc::Config::getInstance().similarityHistorySize;
+                                        
+                                        if (historySize <= 0) {
+                                            // 无限累加模式
+                                            m_similarityHistory.push_back(lastSimilarity);
+                                            m_historyIndex = m_similarityHistory.size() - 1;
+                                        } else {
+                                            // 固定大小模式
+                                            m_similarityHistory[m_historyIndex] = lastSimilarity;
+                                            m_historyIndex = (m_historyIndex + 1) % historySize;
+                                        }
+                                        
+                                        // 计算平均值
+                                        float total = 0.0f;
+                                        int count = 0;
+                                        for (float value : m_similarityHistory) {
+                                            if (value > 0.0f) {  // 只计算有效值
+                                                total += value;
+                                                count++;
+                                            }
+                                        }
+                                        
+                                        if (count > 0) {
+                                            m_fTotalSimilarity.store(total, std::memory_order_relaxed);
+                                            m_nSimilarityCount.store(count, std::memory_order_relaxed);
+                                        }
+                                    }
                                 }
 
                                 // 启动新的异步计算

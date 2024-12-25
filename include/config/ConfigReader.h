@@ -47,6 +47,7 @@ struct Config {
     float minSpeedPenalty;         // 最小速度惩罚
     float dtwBandwidthRatio;       // DTW带宽比例
     float similarityThreshold;      // 相似度阈值
+    int similarityHistorySize;
     
     [[nodiscard]] static inline Config& getInstance() {
         static Config instance;

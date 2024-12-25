@@ -25,6 +25,7 @@
 #include "ui/KFui.h"
 #include "calc/serialize.h"
 #include "calc/compare.h"
+#include "config/ConfigReader.h"
 
 // 声明视频窗口子类处理过程
 LRESULT CALLBACK VideoSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
@@ -168,6 +169,10 @@ private:
     std::string             m_recordFilePath;   // 添加文件路径成员
 
     std::atomic<float>      m_fCurrentSimilarity;     // 原子变量用于线程安全的相似度更新
+    std::vector<float>     m_similarityHistory;   // 相似度历史记录
+    size_t                m_historyIndex;         // 历史记录的当前索引
+    std::mutex            m_historyMutex;         // 历史记录的互斥锁
+
     std::atomic<float>      m_fTotalSimilarity;       // 总相似度
     std::atomic<int>        m_nSimilarityCount;       // 相似度计数
     std::mutex             m_similarityMutex;        // 相似度互斥锁

@@ -293,36 +293,32 @@ namespace kfc {
     float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
         static float lastProcessed = 0.0f;
         
-        // 如果原始相似度太低，使用平滑过渡
-        if (rawSimilarity < 0.45f) {
-            float base = rawSimilarity * 0.3f;
-            float smoothed = lastProcessed * 0.6f + base * 0.4f;
+        // 如果原始相似度太低，直接返回一个很低的值
+        if (rawSimilarity < 0.2f) {
+            float smoothed = lastProcessed * 0.7f + rawSimilarity * 0.3f;
             lastProcessed = smoothed;
             return smoothed;
         }
         
         // 先进行非线性拉伸，增加区分度
-        float stretched = std::pow((rawSimilarity - 0.4f) * 1.5f, 1.1f);
+        float stretched = std::pow((rawSimilarity - 0.2f) * 0.8f, 1.2f);
         stretched = std::max(0.0f, std::min(1.0f, stretched));
         
-        // 将相似度映射到更大范围
-        float x = (stretched - 0.4f) * 8.0f;
+        // 将相似度映射到合适范围
+        float x = (stretched - 0.2f) * 4.0f;
         
         // 使用sigmoid函数进行S型映射
         float processed = 1.0f / (1.0f + std::exp(-x * sensitivity));
         
         // 分段线性映射，增加区分度
         if (processed < 0.4f) {
-            processed *= 0.5f;
+            processed *= 0.6f;
         } else if (processed > 0.6f) {
-            processed = 0.6f + (processed - 0.6f) * 1.4f;
+            processed = 0.6f + (processed - 0.6f) * 0.7f;
         }
         
-        // 映射到目标范围[0.2, 0.9]
-        processed = processed * 0.7f + 0.2f;
-        
         // 最终调整，增加区分度
-        processed = std::pow(processed, 0.85f);
+        processed = std::pow(processed, 1.2f);
         
         // 与上一次结果进行平滑
         float smoothed = lastProcessed * 0.3f + processed * 0.7f;
