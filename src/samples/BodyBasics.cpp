@@ -49,6 +49,8 @@ Application::Application() :
     m_pBrushBoneTemplate(nullptr),
     c_BoneThickness(4.0f),
     m_fCurrentSimilarity(0.0f),
+    m_fTotalSimilarity(0.0f),
+    m_nSimilarityCount(0),
     m_similarityMutex(),
     m_similarityCV(),
     m_similarityUpdated(false)
@@ -183,6 +185,15 @@ void Application::HandlePaint()
                 WCHAR similarityText[64];
                 swprintf_s(similarityText, L"Similarity: %.1f%%", displayedSimilarity * 100.0f);
                 
+                // 获取总准确率
+                float totalSimilarity = m_fTotalSimilarity.load(std::memory_order_relaxed);
+                int similarityCount = m_nSimilarityCount.load(std::memory_order_relaxed);
+                float averageSimilarity = similarityCount > 0 ? (totalSimilarity / similarityCount) : 0.0f;
+                
+                // 准备总准确率文本
+                WCHAR averageText[64];
+                swprintf_s(averageText, L"Average: %.1f%%", averageSimilarity * 100.0f);
+                
                 // 创建半透明黑色背景
                 ID2D1SolidColorBrush* pBackgroundBrush = nullptr;
                 hr = m_pRenderTarget->CreateSolidColorBrush(
@@ -191,9 +202,9 @@ void Application::HandlePaint()
                 );
 
                 if (SUCCEEDED(hr) && pBackgroundBrush) {
-                    // 绘制相似度背景
+                    // 绘制相似度和总准确率背景
                     m_pRenderTarget->FillRectangle(
-                        D2D1::RectF(5.0f, 45.0f, 305.0f, 85.0f),
+                        D2D1::RectF(5.0f, 45.0f, 305.0f, 125.0f),  // 增加高度以容纳两行文本
                         pBackgroundBrush
                     );
                     // 绘制相似度文本
@@ -201,6 +212,13 @@ void Application::HandlePaint()
                         similarityText, wcslen(similarityText),
                         pTextFormat,
                         D2D1::RectF(10.0f, 50.0f, 300.0f, 90.0f),
+                        m_pBrush
+                    );
+                    // 绘制总准确率文本
+                    m_pRenderTarget->DrawText(
+                        averageText, wcslen(averageText),
+                        pTextFormat,
+                        D2D1::RectF(10.0f, 90.0f, 300.0f, 130.0f),
                         m_pBrush
                     );
                     SafeRelease(pBackgroundBrush);
@@ -521,7 +539,6 @@ LRESULT CALLBACK Application::DlgProc(HWND hWnd, UINT message, WPARAM wParam, LP
 
             // Get and initialize the default Kinect sensor
             if(InitializeDefaultSensor() < 0) {
-                // >>> 添加个判断，测试初始化
                 LOG_E("InitializeDefaultSensor");
                 exit(1);
             }
@@ -813,6 +830,11 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                 if (similarityFuture.valid()) {
                                     float lastSimilarity = similarityFuture.get();
                                     m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
+                                    
+                                    // 更新总准确率统计
+                                    auto currentTotal = m_fTotalSimilarity.load(std::memory_order_relaxed);
+                                    m_fTotalSimilarity.store(currentTotal + lastSimilarity, std::memory_order_relaxed);
+                                    m_nSimilarityCount.fetch_add(1, std::memory_order_relaxed);
                                 }
 
                                 // 启动新的异步计算

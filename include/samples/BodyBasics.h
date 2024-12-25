@@ -86,7 +86,14 @@ public:
     inline void SetRecording(bool isRecording) { m_isRecording = isRecording; }
     [[nodiscard]] inline bool IsRecording() const { return m_isRecording; }
 
-    inline void SetCalcing(bool isCalcing) { m_isCalcing = isCalcing; }
+    inline void SetCalcing(bool isCalcing) { 
+        if (!isCalcing) {
+            // 重置计算时重置总准确率统计
+            m_fTotalSimilarity.store(0.0f, std::memory_order_relaxed);
+            m_nSimilarityCount.store(0, std::memory_order_relaxed);
+        }
+        m_isCalcing = isCalcing; 
+    }
     [[nodiscard]] inline bool IsCalcing() const { return m_isCalcing; }
 
     inline void ClearRecordFilePath() { m_recordFilePath.clear(); }
@@ -161,6 +168,8 @@ private:
     std::string             m_recordFilePath;   // 添加文件路径成员
 
     std::atomic<float>      m_fCurrentSimilarity;     // 原子变量用于线程安全的相似度更新
+    std::atomic<float>      m_fTotalSimilarity;       // 总相似度
+    std::atomic<int>        m_nSimilarityCount;       // 相似度计数
     std::mutex             m_similarityMutex;        // 相似度互斥锁
     std::condition_variable m_similarityCV;          // 相似度条件变量
     bool                   m_similarityUpdated;      // 相似度更新标志
