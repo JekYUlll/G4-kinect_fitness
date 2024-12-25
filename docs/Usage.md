@@ -2,6 +2,8 @@
 
 ## 按键功能
 
+![Kinect](images/me.png)
+
 程序界面顶部有四个功能按键：
 
 ### Start/Pause 按钮
