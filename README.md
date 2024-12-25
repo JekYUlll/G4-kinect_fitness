@@ -15,16 +15,6 @@ English version <a href="README_en.md">here</a>.
 
 学生作品，仅供娱乐。
 
-```
-G4-Kinect/
-├── kinect_fitness.exe    # Main program
-├── data/               # Data directory
-│   ├── config.toml    # Configuration file
-│   ├── standard/      # Standard action files directory
-│   └── record/       # Recorded action files directory
-└── README.md          # This file
-```
-
 ![Kinect](docs/images/me.png)
 
 依赖库
