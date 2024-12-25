@@ -115,10 +115,11 @@ namespace kfc {
                 PAINTSTRUCT ps;
                 HDC hdc = BeginPaint(hwnd, &ps);
                 
-                // 绘制窗口背景
-                RECT rc;
-                GetClientRect(hwnd, &rc);
-                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+                // 只绘制按钮区域的背景，不绘制整个窗口
+                RECT buttonArea;
+                GetClientRect(hwnd, &buttonArea);
+                buttonArea.bottom = 50;  // 只绘制按钮区域的背景
+                FillRect(hdc, &buttonArea, (HBRUSH)(COLOR_WINDOW + 1));
                 
                 // 处理应用程序的绘制
                 pApp->HandlePaint();
@@ -131,8 +132,13 @@ namespace kfc {
 
         case WM_ERASEBKGND:
             if (pApp) {
-                // 让系统处理背景擦除，这样按钮区域会正确重绘
-                return DefWindowProc(hwnd, uMsg, wParam, lParam);
+                // 只处理按钮区域的背景擦除
+                HDC hdc = (HDC)wParam;
+                RECT buttonArea;
+                GetClientRect(hwnd, &buttonArea);
+                buttonArea.bottom = 50;  // 只擦除按钮区域
+                FillRect(hdc, &buttonArea, (HBRUSH)(COLOR_WINDOW + 1));
+                return TRUE;  // 我们已经处理了背景擦除
             }
             return DefWindowProc(hwnd, uMsg, wParam, lParam);
 

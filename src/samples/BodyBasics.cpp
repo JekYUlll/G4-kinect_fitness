@@ -132,10 +132,14 @@ void Application::HandlePaint()
     // 开始绘制
     m_pRenderTarget->BeginDraw();
 
-    // 清除视频区域背景
-    m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+    // 清除视频区域背景（只在第一次绘制时进行）
+    static bool firstDraw = true;
+    if (firstDraw) {
+        m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        firstDraw = false;
+    }
 
-    // 更新画面内容（包含了颜色帧的绘制，会自动清除背景）
+    // 更新画面内容
     Update();
 
     // 绘制UI信息
@@ -246,6 +250,7 @@ void Application::HandlePaint()
         hr = S_OK;
         DiscardDirect2DResources();
         EnsureDirect2DResources();
+        firstDraw = true;  // 重新创建资源后需要重新清除背景
     }
 
     // 更新上次绘制时间
