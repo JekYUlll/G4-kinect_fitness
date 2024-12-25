@@ -293,34 +293,37 @@ namespace kfc {
     float postProcessSimilarity(float rawSimilarity, float sensitivity = 2.0f) {
         static float lastProcessed = 0.0f;
         
-        // 如果原始相似度太低，直接返回一个很低的值
-        if (rawSimilarity < 0.2f) {
-            float smoothed = lastProcessed * 0.7f + rawSimilarity * 0.3f;
+        // 如果原始相似度太低，保持高惩罚
+        if (rawSimilarity < 0.3f) {
+            float punished = rawSimilarity * 0.4f;  // 稍微减轻最低分段的惩罚
+            float smoothed = lastProcessed * 0.7f + punished * 0.3f;
             lastProcessed = smoothed;
             return smoothed;
         }
         
-        // 先进行非线性拉伸，增加区分度
-        float stretched = std::pow((rawSimilarity - 0.2f) * 0.8f, 1.2f);
+        // 先进行非线性拉伸，适度惩罚中等相似度
+        float stretched = std::pow((rawSimilarity - 0.3f) * 1.3f, 1.1f);  // 降低拉伸系数，适度增加幂次
         stretched = std::max(0.0f, std::min(1.0f, stretched));
         
         // 将相似度映射到合适范围
-        float x = (stretched - 0.2f) * 4.0f;
+        float x = (stretched - 0.25f) * 4.5f;  // 调整基准点和映射范围
         
         // 使用sigmoid函数进行S型映射
-        float processed = 1.0f / (1.0f + std::exp(-x * sensitivity));
+        float processed = 1.0f / (1.0f + std::exp(-x * (sensitivity * 1.0f)));  // 调整灵敏度
         
-        // 分段线性映射，增加区分度
-        if (processed < 0.4f) {
-            processed *= 0.6f;
-        } else if (processed > 0.6f) {
-            processed = 0.6f + (processed - 0.6f) * 0.7f;
+        // 分段线性映射，平衡各分段的惩罚
+        if (processed < 0.35f) {
+            processed *= 0.45f;  // 保持较高惩罚
+        } else if (processed < 0.65f) {
+            processed = 0.35f + (processed - 0.35f) * 0.8f;  // 适度惩罚中等分段
+        } else {
+            processed = 0.65f + (processed - 0.65f) * 0.75f;  // 降低高分段的奖励
         }
         
-        // 最终调整，增加区分度
-        processed = std::pow(processed, 1.2f);
+        // 最终调整
+        processed = std::pow(processed, 1.2f);  // 适度增加幂次
         
-        // 与上一次结果进行平滑
+        // 平滑处理
         float smoothed = lastProcessed * 0.3f + processed * 0.7f;
         lastProcessed = smoothed;
         
@@ -410,7 +413,7 @@ namespace kfc {
         Matrix dtw = Matrix::Constant(M + 1, N + 1, std::numeric_limits<float>::infinity());
         dtw(0, 0) = 0.0f;
 
-        // 预计算所有帧的相似度，同样使用 RowMajor 布局
+        // 预计算���有帧的相似度，同样使用 RowMajor 布局
         Matrix similarityMatrix = Matrix::Zero(M, N);
         #pragma omp parallel for collapse(2) if(M * N > 1000)
         for (int i = 0; i < static_cast<int>(M); ++i) {
