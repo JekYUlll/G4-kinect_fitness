@@ -194,9 +194,6 @@ private:
     /// </summary>
     void                    ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies);
 
-    // 实时捕捉骨架绘制（绿色）
-    void DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies);
-
     // 播放标准动作骨架（蓝色）
     void PlayActionTemplate(INT64 nTime);
 

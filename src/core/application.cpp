@@ -115,7 +115,8 @@ void Application::HandlePaint()
     LARGE_INTEGER currentTime;
     QueryPerformanceCounter(&currentTime);
     double deltaTime = (currentTime.QuadPart - m_nLastCounter) / m_fFreq;
-    const double targetFrameTime = 1.0 / 60.0;  // 目标60fps
+    // 读取配置设置的帧率 
+    const double targetFrameTime = static_cast<double>(1.0 / kfc::Config::getInstance().displayFPS);
     if (deltaTime < targetFrameTime) {
         return;
     }
@@ -280,7 +281,6 @@ int Application::Run(HINSTANCE hInstance, int nCmdShow)
     }
 
     // 先创建窗口
-    LOG_I("Creating main application window...");
     HWND hWndApp = CreateWindowExW(
         0,                              
         L"BodyBasicsAppDlgWndClass",   
@@ -424,34 +424,26 @@ void Application::Update()
 
         hr = pColorFrame->get_RelativeTime(&nTime);
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             hr = pColorFrame->get_FrameDescription(&pFrameDescription);
         }
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             hr = pFrameDescription->get_Width(&nWidth);
         }
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             hr = pFrameDescription->get_Height(&nHeight);
         }
 
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             hr = pColorFrame->get_RawColorImageFormat(&imageFormat);
         }
 
-        if (SUCCEEDED(hr))
-        {
-            if (imageFormat == ColorImageFormat_Bgra)
-            {
+        if (SUCCEEDED(hr)) {
+            if (imageFormat == ColorImageFormat_Bgra) {
                 hr = pColorFrame->AccessRawUnderlyingBuffer(&nBufferSize, reinterpret_cast<BYTE**>(&pBuffer));
-            }
-            else
-            {
+            } else {
                 hr = pColorFrame->CopyConvertedFrameDataToArray(
                     cColorWidth * cColorHeight * sizeof(RGBQUAD),
                     reinterpret_cast<BYTE*>(m_pColorRGBX),
@@ -460,12 +452,10 @@ void Application::Update()
                 pBuffer = m_pColorRGBX;
             }
         }
-
         if (SUCCEEDED(hr)) {
             // 先绘制颜色帧
             ProcessColor(nTime, pBuffer, nWidth, nHeight);
         }
-
         SafeRelease(pFrameDescription);
     }
     SafeRelease(pColorFrame);
@@ -473,8 +463,7 @@ void Application::Update()
     // 然后处理骨骼帧
     IBodyFrame* pBodyFrame = NULL;
     hr = m_pBodyFrameReader->AcquireLatestFrame(&pBodyFrame);
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         INT64 nTime = 0;
         hr = pBodyFrame->get_RelativeTime(&nTime);
         IBody* ppBodies[BODY_COUNT] = {0};
@@ -506,18 +495,14 @@ LRESULT CALLBACK Application::MessageRouter(HWND hWnd, UINT uMsg, WPARAM wParam,
 {
     Application* pThis = NULL;
     
-    if (WM_INITDIALOG == uMsg)
-    {
+    if (WM_INITDIALOG == uMsg) {
         pThis = reinterpret_cast<Application*>(lParam);
         SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
-    }
-    else
-    {
+    } else {
         pThis = reinterpret_cast<Application*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
     }
 
-    if (pThis)
-    {
+    if (pThis) {
         return pThis->DlgProc(hWnd, uMsg, wParam, lParam);
     }
 
@@ -844,7 +829,6 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                 if (similarityFuture.valid()) {
                                     float lastSimilarity = similarityFuture.get();
                                     m_fCurrentSimilarity.store(lastSimilarity, std::memory_order_release);
-                                    
                                     // 更新相似度历史记录
                                     {
                                         std::lock_guard<std::mutex> lock(m_historyMutex);
@@ -859,7 +843,6 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
                                             m_similarityHistory[m_historyIndex] = lastSimilarity;
                                             m_historyIndex = (m_historyIndex + 1) % historySize;
                                         }
-                                        
                                         // 计算平均值
                                         float total = 0.0f;
                                         int count = 0;
@@ -917,103 +900,14 @@ void Application::ProcessBody(INT64 nTime, int nBodyCount, IBody** ppBodies) {
     }
 }
 
-
-void Application::DrawRealtimeSkeletons(INT64 nTime, int nBodyCount, IBody** ppBodies)
-{
-}
-
-void Application::PlayActionTemplate(INT64 nTime) {
-    if (!m_isPlayingTemplate || !kfc::g_actionTemplate) {
-        return; // 未打开播放或模板未加载
-    }
-
-    std::lock_guard<std::mutex> lock(kfc::templateMutex); // 确保线程安全
-    const auto& actionTemplate = *kfc::g_actionTemplate;
-
-    const auto& actionFrames = actionTemplate.getFrames();
-    if (actionFrames.empty()) {
-        return; // 无有效帧
-    }
-
-    // 初始化播放起点时间
-    if (m_playbackStartTime == 0) {
-        m_playbackStartTime = nTime;
-    }
-
-    // 使用recordInterval来控制播放速度
-    INT64 elapsedTime = nTime - m_playbackStartTime;
-    size_t frameIndex = (elapsedTime / kfc::Config::getInstance().getRecordInterval()) % actionTemplate.getFrameCount();
-
-    // 如果当前帧发生变化，更新当前帧并绘制
-    if (frameIndex != m_currentFrameIndex) {
-        m_currentFrameIndex = frameIndex;
-        const auto& frameData = actionFrames[m_currentFrameIndex];
-
-        // 准备骨架点
-        D2D1_POINT_2F jointPoints[JointType_Count];
-        for (const auto& jointData : frameData.joints) {
-            jointPoints[jointData.type] = BodyToScreen(jointData.position, cColorWidth, cColorHeight);
-        }
-
-        // 定义骨骼连接关系
-        static const std::vector<std::pair<JointType, JointType>> bonePairs = {
-            {JointType_Head, JointType_Neck},
-            {JointType_Neck, JointType_SpineShoulder},
-            {JointType_SpineShoulder, JointType_SpineMid},
-            {JointType_SpineMid, JointType_SpineBase},
-            {JointType_SpineShoulder, JointType_ShoulderRight},
-            {JointType_SpineShoulder, JointType_ShoulderLeft},
-            {JointType_SpineBase, JointType_HipRight},
-            {JointType_SpineBase, JointType_HipLeft},
-            {JointType_ShoulderRight, JointType_ElbowRight},
-            {JointType_ElbowRight, JointType_WristRight},
-            {JointType_WristRight, JointType_HandRight},
-            {JointType_ShoulderLeft, JointType_ElbowLeft},
-            {JointType_ElbowLeft, JointType_WristLeft},
-            {JointType_WristLeft, JointType_HandLeft},
-            {JointType_HipRight, JointType_KneeRight},
-            {JointType_KneeRight, JointType_AnkleRight},
-            {JointType_AnkleRight, JointType_FootRight},
-            {JointType_HipLeft, JointType_KneeLeft},
-            {JointType_KneeLeft, JointType_AnkleLeft},
-            {JointType_AnkleLeft, JointType_FootLeft},
-        };
-
-        // 绘制骨骼
-        for (const auto& bone : bonePairs) {
-            const auto& joint0 = frameData.joints[bone.first];
-            const auto& joint1 = frameData.joints[bone.second];
-
-            if (joint0.trackingState == TrackingState_NotTracked || joint1.trackingState == TrackingState_NotTracked) {
-                continue; // 跳过未跟踪的骨骼
-            }
-
-            auto brush = (joint0.trackingState == TrackingState_Tracked && joint1.trackingState == TrackingState_Tracked)
-                ? m_pBrushBoneTracked
-                : m_pBrushBoneInferred;
-
-            m_pRenderTarget->DrawLine(
-                jointPoints[bone.first],
-                jointPoints[bone.second],
-                brush,
-                2.0f
-            );
-        }
-
-        // 绘制关节
-        for (const auto& jointData : frameData.joints) {
-            auto brush = (jointData.trackingState == TrackingState_Tracked)
-                ? m_pBrushJointTracked
-                : m_pBrushJointInferred;
-
-            m_pRenderTarget->DrawEllipse(
-                D2D1::Ellipse(jointPoints[jointData.type], 5.0f, 5.0f),
-                brush
-            );
-        }
-    }
-}
-
+/// <summary>
+/// Draws a bone line between two joints
+/// <param name="pJoints">joints to draw</param>
+/// <param name="pJointPoints">joint positions in screen space</param>
+/// <param name="JointType0">first joint to connect</param>
+/// <param name="JointType1">second joint to connect</param>
+/// </summary>
+void Application::DrawBone(const Joint* pJoints, const D2D1_POINT_2F* pJointPoints, JointType JointType0, JointType JointType1)
 void Application::DrawTemplateBody(const kfc::JointData* pJoints, const D2D1_POINT_2F* pJointPoints)
 {
     if (!m_pRenderTarget || !m_pBrushJointTemplate || !m_pBrushBoneTemplate) {

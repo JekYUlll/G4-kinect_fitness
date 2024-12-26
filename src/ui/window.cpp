@@ -179,7 +179,7 @@ namespace kfc {
                 OnRecordButtonClick();
                 if (!pApp->IsRecording()) {
                     if (!pApp->IsCalcing()) { // 必须在计算状态下才能录制
-                        LOG_E("must start Calcing before Recording");
+                        LOG_W("must start Calcing before Recording");
                         break;
                     }
                     pApp->SetRecording(true);
@@ -200,7 +200,7 @@ namespace kfc {
             case 4: // Play 按钮
                 if (!pApp->IsPlayingTemplate()) {
                     if (!pApp->IsCalcing()) { // 必须在计算状态下
-                        LOG_E("must start Calcing before Playing standard action template");
+                        LOG_W("must start Calcing before Playing standard action template");
                         break;
                     }
                     pApp->SetPlayingTemplate(true);
