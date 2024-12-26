@@ -199,6 +199,10 @@ namespace kfc {
 
             case 4: // Play 按钮
                 if (!pApp->IsPlayingTemplate()) {
+                    if (!pApp->IsCalcing()) { // 必须在计算状态下
+                        LOG_E("must start Calcing before Playing standard action template");
+                        break;
+                    }
                     pApp->SetPlayingTemplate(true);
                     SetWindowText(hPlayButton, L"Stop");
                     pApp->SetPlaybackStartTime(0); // 重置播放起点
@@ -211,9 +215,6 @@ namespace kfc {
                 }
                 break;
             }
-
-
-
             return 0;
         }
 
